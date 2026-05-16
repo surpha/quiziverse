@@ -4,6 +4,7 @@
     "question": "What is the time complexity of binary search?",
     "answer": "O(log n) — each comparison halves the search space.",
     "source": "Introduction to Algorithms (CLRS)",
+    "imageUrl": null,
     "weights": {
       "technology": 9, "history": 2, "geography": 1, "science": 7,
       "literature": 1, "arts": 1, "music": 1, "society": 2,
@@ -15,6 +16,7 @@
     "question": "Who painted the Sistine Chapel ceiling?",
     "answer": "Michelangelo, between 1508 and 1512.",
     "source": "Lives of the Artists — Giorgio Vasari",
+    "imageUrl": null,
     "weights": {
       "technology": 1, "history": 9, "geography": 3, "science": 1,
       "literature": 2, "arts": 10, "music": 1, "society": 3,
@@ -26,6 +28,7 @@
     "question": "What is the double-slit experiment?",
     "answer": "An experiment demonstrating that light and matter exhibit wave-particle duality — particles create an interference pattern when not observed, but behave as particles when measured.",
     "source": "Feynman Lectures on Physics, Vol. III",
+    "imageUrl": null,
     "weights": {
       "technology": 4, "history": 5, "geography": 1, "science": 10,
       "literature": 1, "arts": 1, "music": 1, "society": 3,
@@ -37,6 +40,7 @@
     "question": "Identify the 19th-century mathematician, considered the first computer programmer, who wrote instructions for Charles Babbage's Analytical Engine.",
     "answer": "Ada Lovelace — daughter of Lord Byron, she wrote the first algorithm intended for machine processing in 1843.",
     "source": "Ada's Algorithm — James Essinger",
+    "imageUrl": null,
     "weights": {
       "technology": 10, "history": 8, "geography": 2, "science": 6,
       "literature": 3, "arts": 1, "music": 1, "society": 4,
@@ -48,6 +52,7 @@
     "question": "What year was the World Wide Web invented?",
     "answer": "1989 — Tim Berners-Lee proposed it at CERN.",
     "source": "Weaving the Web — Tim Berners-Lee",
+    "imageUrl": null,
     "weights": {
       "technology": 10, "history": 9, "geography": 3, "science": 5,
       "literature": 1, "arts": 1, "music": 1, "society": 6,
@@ -59,6 +64,7 @@
     "question": "Which ancient civilization built Machu Picchu?",
     "answer": "The Inca Empire, constructed around 1450 CE as an estate for Emperor Pachacuti.",
     "source": "National Geographic Society",
+    "imageUrl": null,
     "weights": {
       "technology": 3, "history": 10, "geography": 9, "science": 2,
       "literature": 1, "arts": 7, "music": 1, "society": 6,
@@ -70,6 +76,7 @@
     "question": "What is the significance of the Rosetta Stone?",
     "answer": "It enabled the decipherment of Egyptian hieroglyphs by providing the same text in three scripts: hieroglyphic, Demotic, and Ancient Greek.",
     "source": "The British Museum",
+    "imageUrl": null,
     "weights": {
       "technology": 2, "history": 10, "geography": 5, "science": 3,
       "literature": 8, "arts": 4, "music": 1, "society": 5,
@@ -81,6 +88,7 @@
     "question": "In what key is Beethoven's 'Moonlight Sonata' written?",
     "answer": "C-sharp minor (Piano Sonata No. 14, Op. 27 No. 2).",
     "source": "Grove Dictionary of Music",
+    "imageUrl": null,
     "weights": {
       "technology": 1, "history": 5, "geography": 2, "science": 2,
       "literature": 2, "arts": 6, "music": 10, "society": 2,
@@ -92,6 +100,7 @@
     "question": "What does the term 'gerrymandering' refer to?",
     "answer": "The practice of manipulating electoral district boundaries to favor a particular political party or group.",
     "source": "Encyclopædia Britannica",
+    "imageUrl": null,
     "weights": {
       "technology": 1, "history": 7, "geography": 6, "science": 1,
       "literature": 2, "arts": 1, "music": 1, "society": 10,
@@ -103,6 +112,7 @@
     "question": "Which sport has the most participants worldwide?",
     "answer": "Football (soccer) — estimated 4 billion fans and over 250 million players globally.",
     "source": "FIFA Big Count Survey",
+    "imageUrl": null,
     "weights": {
       "technology": 1, "history": 4, "geography": 5, "science": 1,
       "literature": 1, "arts": 1, "music": 1, "society": 5,

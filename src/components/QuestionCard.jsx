@@ -21,9 +21,20 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
         </button>
 
         {/* Question */}
-        <p className="text-white text-lg font-medium mb-6 leading-relaxed pr-6">
+        <p className="text-white text-lg font-medium mb-4 leading-relaxed pr-6">
           {question.question}
         </p>
+
+        {/* Image (if present) */}
+        {question.imageUrl && (
+          <div className="mb-4 rounded-lg overflow-hidden border border-gray-700/50">
+            <img
+              src={question.imageUrl}
+              alt="Question visual"
+              className="w-full max-h-48 object-cover"
+            />
+          </div>
+        )}
 
         {/* Answer area */}
         {revealed ? (

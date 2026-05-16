@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { OrbitControls, Stars } from '@react-three/drei'
 import StarNode from './StarNode'
-import questions from '../data/questions.json'
 import { computePositions } from '../utils/coordinateMapper'
 
 function matchesFilters(question, filters) {
@@ -10,8 +9,8 @@ function matchesFilters(question, filters) {
   return entries.some(([domain, minWeight]) => (question.weights[domain] || 0) >= minWeight)
 }
 
-function Scene({ onSelectQuestion, filters }) {
-  const positionedQuestions = useMemo(() => computePositions(questions), [])
+function Scene({ onSelectQuestion, filters, questions }) {
+  const positionedQuestions = useMemo(() => computePositions(questions), [questions])
 
   return (
     <>
