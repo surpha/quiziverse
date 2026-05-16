@@ -17,11 +17,16 @@ create table if not exists questions (
   created_at timestamptz default now()
 );
 
--- Profiles table for role management
+-- Profiles table for role management & persona
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
   role text not null default 'user' check (role in ('user', 'admin')),
+  display_name text,
+  username text unique,
+  age_range text check (age_range in ('under18', '18-24', '25-34', '35-44', '45+')),
+  favorite_domains jsonb default '[]'::jsonb,
+  avatar_emoji text default '✦',
   created_at timestamptz default now()
 );
 

@@ -73,9 +73,20 @@ export function useAuth() {
     if (error) throw error
   }
 
-  const signUp = async (email, password) => {
-    const { error } = await supabase.auth.signUp({ email, password })
+  const signUp = async (email, password, profileData = {}) => {
+    const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
+    // Update profile with extra fields after trigger creates the row
+    const userId = data?.user?.id
+    if (userId && Object.keys(profileData).length > 0) {
+      // Small delay to let the trigger create the profile row
+      await new Promise(r => setTimeout(r, 500))
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(profileData)
+        .eq('id', userId)
+      if (updateError) console.warn('Profile update after signup:', updateError.message)
+    }
   }
 
   const signOut = async () => {

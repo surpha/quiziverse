@@ -122,7 +122,10 @@ function App() {
                 Sign Out
               </button>
             </div>
-            <span className="text-gray-500 text-xs">{user.email}</span>
+            <span className="text-gray-500 text-xs flex items-center gap-1.5">
+              <span className="text-sm">{profile?.avatar_emoji || '✦'}</span>
+              {profile?.display_name || user.email}
+            </span>
           </>
         ) : (
           <button
@@ -139,13 +142,13 @@ function App() {
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-end gap-3">
           <FilterPanel filters={filters} onFiltersChange={setFilters} />
           <button
-            onClick={startPlayMode}
+            onClick={() => user ? startPlayMode() : setShowAuth(true)}
             className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-full shadow-lg shadow-purple-500/30 transition-colors cursor-pointer flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
-            Random Play
+            {user ? 'Random Play' : 'Sign In to Play'}
           </button>
         </div>
       )}
