@@ -2,6 +2,51 @@ import { useState } from 'react'
 import DOMAINS from '../utils/domainConfig'
 import QUESTION_TYPES from '../utils/questionTypes'
 
+function getYouTubeId(url) {
+  if (!url) return null
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([a-zA-Z0-9_-]{11})/)
+  return match ? match[1] : null
+}
+
+function MediaEmbed({ url }) {
+  if (!url) return null
+  const ytId = getYouTubeId(url)
+  if (ytId) {
+    return (
+      <div className="mb-4 rounded-lg overflow-hidden border border-gray-700/50 aspect-video">
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${ytId}`}
+          title="Video"
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    )
+  }
+  // Fallback: render as audio/video element for direct links
+  if (url.match(/\.(mp3|wav|ogg|m4a)(\?|$)/i)) {
+    return (
+      <div className="mb-4">
+        <audio controls src={url} className="w-full" />
+      </div>
+    )
+  }
+  if (url.match(/\.(mp4|webm|ogv)(\?|$)/i)) {
+    return (
+      <div className="mb-4 rounded-lg overflow-hidden border border-gray-700/50">
+        <video controls src={url} className="w-full max-h-48" />
+      </div>
+    )
+  }
+  // Generic link
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="text-purple-400 text-xs underline block mb-4">
+      🎬 Open media link
+    </a>
+  )
+}
+
 function QuestionCard({ question, onClose, onNext, isPlayMode }) {
   const [revealed, setRevealed] = useState(false)
 
@@ -51,6 +96,9 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
             />
           </div>
         )}
+
+        {/* Media embed (YouTube, audio, video) */}
+        <MediaEmbed url={question.mediaUrl} />
 
         {/* Answer area */}
         {revealed ? (

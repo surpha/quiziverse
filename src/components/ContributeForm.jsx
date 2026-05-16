@@ -11,6 +11,7 @@ function ContributeForm({ onClose, onSubmitted }) {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [source, setSource] = useState('')
+  const [mediaUrl, setMediaUrl] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
@@ -114,6 +115,7 @@ function ContributeForm({ onClose, onSubmitted }) {
           answer: answer.trim(),
           source: source.trim() || null,
           image_url: finalImageUrl,
+          media_url: mediaUrl.trim() || null,
           difficulty,
           type: questionType,
           weights,
@@ -230,6 +232,19 @@ function ContributeForm({ onClose, onSubmitted }) {
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Media URL (YouTube / audio) */}
+            <div>
+              <label className="text-gray-300 text-sm block mb-1">YouTube / Media URL (optional)</label>
+              <input
+                type="url"
+                value={mediaUrl}
+                onChange={(e) => setMediaUrl(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+              />
+              <p className="text-gray-600 text-xs mt-1">Paste a YouTube, Vimeo, or direct audio/video link</p>
             </div>
 
             {/* Image */}
