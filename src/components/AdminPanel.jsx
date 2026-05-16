@@ -130,6 +130,28 @@ function AdminPanel({ onClose }) {
     setActionLoading(null)
   }
 
+  const handleEditLive = async (id, editData) => {
+    setActionLoading(id)
+    const { error } = await supabase
+      .from('questions')
+      .update({
+        question: editData.question,
+        answer: editData.answer,
+        difficulty: editData.difficulty,
+        type: editData.type,
+        weights: editData.weights,
+        source: editData.source || null,
+        media_url: editData.media_url || null,
+      })
+      .eq('id', id)
+    if (error) {
+      alert(`Edit failed: ${error.message}`)
+    } else {
+      setApproved(prev => prev.map(q => q.id === id ? { ...q, ...editData } : q))
+    }
+    setActionLoading(null)
+  }
+
   const filteredApproved = approved.filter(q =>
     !search || q.question.toLowerCase().includes(search.toLowerCase()) ||
     q.answer.toLowerCase().includes(search.toLowerCase())
@@ -221,6 +243,7 @@ function AdminPanel({ onClose }) {
               search={search}
               onSearchChange={setSearch}
               onDelete={handleDelete}
+              onEdit={handleEditLive}
               actionLoading={actionLoading}
               getDomainTags={getDomainTags}
             />
@@ -821,8 +844,53 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
   )
 }
 
-function RepositoryTab({ questions, search, onSearchChange, onDelete, actionLoading, getDomainTags }) {
+function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, actionLoading, getDomainTags }) {
   const [expanded, setExpanded] = useState(null)
+  const [edits, setEdits] = useState({})
+  const [editingId, setEditingId] = useState(null)
+
+  const toggleExpand = (q) => {
+    if (expanded === q.id) {
+      setExpanded(null)
+      setEditingId(null)
+    } else {
+      setExpanded(q.id)
+    }
+  }
+
+  const startEditing = (q) => {
+    setEditingId(q.id)
+    if (!edits[q.id]) {
+      setEdits(prev => ({ ...prev, [q.id]: {
+        question: q.question,
+        answer: q.answer,
+        difficulty: q.difficulty || 5,
+        type: q.type || 'straight',
+        weights: q.weights || {},
+        source: q.source || '',
+        media_url: q.media_url || '',
+      }}))
+    }
+  }
+
+  const updateEdit = (id, field, value) => {
+    setEdits(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
+  }
+
+  const updateWeight = (id, domain, value) => {
+    setEdits(prev => ({
+      ...prev,
+      [id]: { ...prev[id], weights: { ...prev[id].weights, [domain]: Number(value) } }
+    }))
+  }
+
+  const handleSave = (id) => {
+    const edit = edits[id]
+    if (edit) {
+      onEdit(id, edit)
+      setEditingId(null)
+    }
+  }
 
   return (
     <div>
@@ -851,18 +919,20 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, actionLoad
         <div className="space-y-2">
           {questions.map((q) => {
             const isExpanded = expanded === q.id
+            const isEditing = editingId === q.id
+            const edit = edits[q.id]
             return (
               <div key={q.id} className="bg-gray-800/60 border border-gray-700/50 rounded-lg p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div
                     className="flex-1 min-w-0 cursor-pointer"
-                    onClick={() => setExpanded(isExpanded ? null : q.id)}
+                    onClick={() => toggleExpand(q)}
                   >
                     <p className="text-white text-sm mb-1">{q.question}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => setExpanded(isExpanded ? null : q.id)}
+                      onClick={() => toggleExpand(q)}
                       className="text-gray-500 hover:text-purple-400 text-xs cursor-pointer transition-colors"
                     >
                       {isExpanded ? '▲' : '▼'}
@@ -892,7 +962,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, actionLoad
                 </div>
 
                 {/* Expanded details */}
-                {isExpanded && (
+                {isExpanded && !isEditing && (
                   <div className="border-t border-gray-700 mt-3 pt-3 space-y-2">
                     <div>
                       <span className="text-gray-500 text-xs">Answer:</span>
@@ -907,7 +977,6 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, actionLoad
                     {q.image_url && (
                       <img src={q.image_url} alt="Question" className="rounded-lg max-h-24 object-cover border border-gray-700" />
                     )}
-                    {/* All domain weights */}
                     {q.weights && (
                       <div className="flex flex-wrap gap-1.5">
                         {Object.entries(q.weights)
@@ -920,6 +989,115 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, actionLoad
                           ))}
                       </div>
                     )}
+                    <button
+                      onClick={() => startEditing(q)}
+                      className="mt-2 px-3 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 text-xs rounded-lg transition-colors cursor-pointer"
+                    >
+                      ✎ Edit
+                    </button>
+                  </div>
+                )}
+
+                {/* Edit form */}
+                {isExpanded && isEditing && edit && (
+                  <div className="border-t border-gray-700 mt-3 pt-3 space-y-3">
+                    <div>
+                      <label className="text-gray-400 text-xs block mb-1">Question</label>
+                      <textarea
+                        value={edit.question}
+                        onChange={(e) => updateEdit(q.id, 'question', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 resize-none"
+                        rows={2}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 text-xs block mb-1">Answer</label>
+                      <textarea
+                        value={edit.answer}
+                        onChange={(e) => updateEdit(q.id, 'answer', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 resize-none"
+                        rows={2}
+                      />
+                    </div>
+                    <div className="flex gap-4 flex-wrap">
+                      <div>
+                        <label className="text-gray-400 text-xs block mb-1">Difficulty ({edit.difficulty}/10)</label>
+                        <input
+                          type="range"
+                          min={1}
+                          max={10}
+                          value={edit.difficulty}
+                          onChange={(e) => updateEdit(q.id, 'difficulty', Number(e.target.value))}
+                          className="w-32"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-xs block mb-1">Type</label>
+                        <select
+                          value={edit.type}
+                          onChange={(e) => updateEdit(q.id, 'type', e.target.value)}
+                          className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+                        >
+                          {Object.entries(QUESTION_TYPES).map(([key, { label, icon }]) => (
+                            <option key={key} value={key}>{icon} {label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-xs block mb-1">Source</label>
+                        <input
+                          type="text"
+                          value={edit.source}
+                          onChange={(e) => updateEdit(q.id, 'source', e.target.value)}
+                          className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500 w-40"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-gray-400 text-xs block mb-1">YouTube / Media URL</label>
+                      <input
+                        type="url"
+                        value={edit.media_url}
+                        onChange={(e) => updateEdit(q.id, 'media_url', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 text-xs block mb-2">Domain Weights</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
+                        {DOMAIN_KEYS.map(key => (
+                          <div key={key} className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: DOMAINS[key]?.color }} />
+                            <span className="text-gray-300 text-xs w-20 truncate">{DOMAINS[key]?.label}</span>
+                            <input
+                              type="range"
+                              min={0}
+                              max={10}
+                              value={edit.weights[key] || 0}
+                              onChange={(e) => updateWeight(q.id, key, e.target.value)}
+                              className="w-16 h-1"
+                            />
+                            <span className="text-gray-500 text-xs w-4">{edit.weights[key] || 0}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={() => handleSave(q.id)}
+                        disabled={actionLoading === q.id}
+                        className="px-4 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+                      >
+                        {actionLoading === q.id ? '...' : '✓ Save'}
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="px-4 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
