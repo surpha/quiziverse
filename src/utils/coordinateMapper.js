@@ -1,77 +1,101 @@
 /**
- * Maps 12-dimensional topic weights into 3D Cartesian coordinates.
+ * Spherical Knowledge Globe Layout
  *
- * Two-pass approach for smooth, logical placement:
- * 1. Project 12D weights → 3D using a fixed semantic axis matrix
- * 2. Apply force-directed relaxation so nodes repel each other
- *    (prevents overlap) while preserving relative topology
+ * Maps questions onto a sphere where:
+ * - ANGLE (θ, φ) = determined by topic weights (domain clusters)
+ * - RADIUS = determined by difficulty (easy=close to center, hard=outer orbits)
  *
- * The axes encode meaning:
- *   X: STEM ←→ Humanities
- *   Y: Abstract/Intellectual ←→ Physical/Practical
- *   Z: Historical/Classical ←→ Modern/Pop
+ * This creates an intuitive navigation:
+ * - Zoom in → easy questions near the core
+ * - Zoom out → harder questions in outer shell
+ * - Rotate → different topic galaxies
+ *
+ * Topic projection reduces 12D weights → 2D angular position (θ, φ)
+ * Then converts to Cartesian [x, y, z] with radius from difficulty.
  */
-
-const PROJECTION = {
-  x: {
-    technology: 1.0, science: 0.8, history: -0.3, geography: -0.2,
-    literature: -0.7, arts: -0.9, music: -0.5, society: 0.2,
-    religion: -0.4, popCulture: 0.5, sports: 0.3, lifestyle: 0.1,
-  },
-  y: {
-    technology: 0.3, science: 0.6, history: 0.4, geography: -0.5,
-    literature: 0.5, arts: 0.3, music: 0.7, society: 0.9,
-    religion: 1.0, popCulture: -0.6, sports: -1.0, lifestyle: -0.8,
-  },
-  z: {
-    technology: -0.5, science: -0.2, history: 1.0, geography: 0.9,
-    literature: 0.5, arts: 0.6, music: 0.3, society: 0.2,
-    religion: 0.7, popCulture: -0.9, sports: -0.7, lifestyle: -0.4,
-  },
-};
 
 const DOMAIN_KEYS = [
   'technology', 'history', 'geography', 'science', 'literature',
   'arts', 'music', 'society', 'religion', 'popCulture', 'sports', 'lifestyle',
 ];
 
-function project(weights, axis) {
-  return DOMAIN_KEYS.reduce((sum, d) => sum + (weights[d] || 0) * (axis[d] || 0), 0);
+// Each domain maps to a direction on the sphere (θ, φ in radians)
+// Distributed evenly with semantic grouping
+const DOMAIN_ANGLES = {
+  technology:  { theta: 0.0,   phi: 0.4  },  // front-top
+  science:     { theta: 0.5,   phi: 0.3  },  // near tech
+  society:     { theta: 1.0,   phi: 0.6  },  // upper mid
+  history:     { theta: 1.5,   phi: 0.5  },  // upper back
+  geography:   { theta: 2.0,   phi: 0.2  },  // back top
+  religion:    { theta: 2.5,   phi: 0.7  },  // back lower
+  literature:  { theta: 3.0,   phi: 0.4  },  // left
+  arts:        { theta: 3.5,   phi: 0.6  },  // left lower
+  music:       { theta: 4.0,   phi: 0.5  },  // lower left
+  lifestyle:   { theta: 4.5,   phi: 0.8  },  // bottom
+  sports:      { theta: 5.2,   phi: 0.75 },  // bottom right
+  popCulture:  { theta: 5.7,   phi: 0.55 },  // right
+};
+
+/**
+ * Compute weighted average angle from domain weights.
+ * Uses circular mean to avoid wrapping issues around 2π.
+ */
+function weightedAngles(weights) {
+  let sinTheta = 0, cosTheta = 0;
+  let sinPhi = 0, cosPhi = 0;
+  let totalWeight = 0;
+
+  for (const domain of DOMAIN_KEYS) {
+    const w = (weights[domain] || 0);
+    if (w <= 0) continue;
+    const wSq = w * w; // Square to emphasize dominant domains
+    totalWeight += wSq;
+
+    const a = DOMAIN_ANGLES[domain];
+    sinTheta += Math.sin(a.theta) * wSq;
+    cosTheta += Math.cos(a.theta) * wSq;
+    sinPhi += Math.sin(a.phi * Math.PI) * wSq;
+    cosPhi += Math.cos(a.phi * Math.PI) * wSq;
+  }
+
+  if (totalWeight === 0) return { theta: 0, phi: Math.PI / 2 };
+
+  const theta = Math.atan2(sinTheta / totalWeight, cosTheta / totalWeight);
+  const phi = Math.atan2(sinPhi / totalWeight, cosPhi / totalWeight);
+
+  return { theta, phi };
 }
 
-function weightsToRawPosition(weights) {
+/**
+ * Convert spherical (r, θ, φ) to Cartesian [x, y, z].
+ */
+function sphericalToCartesian(r, theta, phi) {
   return [
-    project(weights, PROJECTION.x),
-    project(weights, PROJECTION.y),
-    project(weights, PROJECTION.z),
+    r * Math.sin(phi) * Math.cos(theta),
+    r * Math.cos(phi),
+    r * Math.sin(phi) * Math.sin(theta),
   ];
 }
 
 /**
- * Cosine similarity between two weight vectors (0 to 1).
+ * Map difficulty (1-5) to radius.
+ * Easy (1) → close to center, Hard (5) → outer orbit.
  */
-function similarity(a, b) {
-  let dot = 0, magA = 0, magB = 0;
-  for (const d of DOMAIN_KEYS) {
-    const va = a[d] || 0, vb = b[d] || 0;
-    dot += va * vb;
-    magA += va * va;
-    magB += vb * vb;
-  }
-  if (magA === 0 || magB === 0) return 0;
-  return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+function difficultyToRadius(difficulty, innerRadius = 2.0, outerRadius = 6.0) {
+  const d = Math.max(1, Math.min(5, difficulty || 3));
+  return innerRadius + ((d - 1) / 4) * (outerRadius - innerRadius);
 }
 
 /**
- * Force-directed relaxation: repel overlapping nodes while preserving
- * the topology from the projection.
+ * Force-directed relaxation on a sphere surface:
+ * Pushes overlapping nodes apart while keeping them at their radius.
  */
-function relax(positions, iterations = 50, minDist = 0.8) {
+function relax(positions, iterations = 40, minDist = 0.6) {
   const pts = positions.map(p => [...p]);
   const n = pts.length;
 
   for (let iter = 0; iter < iterations; iter++) {
-    const strength = 0.05 * (1 - iter / iterations); // decay force over time
+    const strength = 0.04 * (1 - iter / iterations);
 
     for (let i = 0; i < n; i++) {
       for (let j = i + 1; j < n; j++) {
@@ -91,28 +115,40 @@ function relax(positions, iterations = 50, minDist = 0.8) {
         }
       }
     }
+
+    // Re-project to original radius (keep spherical constraint)
+    for (let i = 0; i < n; i++) {
+      const r = Math.sqrt(pts[i][0] ** 2 + pts[i][1] ** 2 + pts[i][2] ** 2) || 1;
+      const targetR = positions[i].targetR;
+      const scale = targetR / r;
+      pts[i][0] *= scale;
+      pts[i][1] *= scale;
+      pts[i][2] *= scale;
+    }
   }
+
   return pts;
 }
 
 /**
  * Pre-compute positions for all questions.
- * `spread` controls the spatial distribution radius.
+ * Auto-adjusts as questions are added.
  */
-export function computePositions(questions, spread = 4.0) {
-  // Step 1: Project to raw 3D
-  const scale = spread / 30;
-  const rawPositions = questions.map(q =>
-    weightsToRawPosition(q.weights).map(v => v * scale)
-  );
+export function computePositions(questions) {
+  // Step 1: Map each question to spherical coordinates
+  const spherical = questions.map(q => {
+    const { theta, phi } = weightedAngles(q.weights);
+    const r = difficultyToRadius(q.difficulty);
+    const pos = sphericalToCartesian(r, theta, phi);
+    pos.targetR = r; // store for relaxation constraint
+    return pos;
+  });
 
-  // Step 2: Relax to prevent overlap
-  const relaxed = relax(rawPositions);
+  // Step 2: Relax to prevent overlap (preserving radii)
+  const relaxed = relax(spherical);
 
   return questions.map((q, i) => ({
     ...q,
-    position: relaxed[i],
+    position: [relaxed[i][0], relaxed[i][1], relaxed[i][2]],
   }));
 }
-
-export { similarity };
