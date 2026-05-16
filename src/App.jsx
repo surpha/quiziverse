@@ -106,24 +106,26 @@ function App() {
       </div>
 
       {/* Top-right auth area */}
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+      <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-1.5">
         {authLoading ? null : user ? (
           <>
-            {isAdmin && (
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <button
+                  onClick={() => setShowAdmin(true)}
+                  className="px-3 py-1.5 bg-amber-600/80 hover:bg-amber-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+                >
+                  ⚙ Admin
+                </button>
+              )}
               <button
-                onClick={() => setShowAdmin(true)}
-                className="px-3 py-1.5 bg-amber-600/80 hover:bg-amber-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+                onClick={() => signOut()}
+                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg transition-colors cursor-pointer"
               >
-                ⚙ Admin
+                Sign Out
               </button>
-            )}
-            <span className="text-gray-400 text-xs truncate max-w-[120px]">{user.email}</span>
-            <button
-              onClick={signOut}
-              className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg transition-colors cursor-pointer"
-            >
-              Sign Out
-            </button>
+            </div>
+            <span className="text-gray-500 text-xs">{user.email}</span>
           </>
         ) : (
           <button
