@@ -16,31 +16,37 @@ export function useQuestions() {
     // Try Supabase first
     if (isSupabaseConfigured()) {
       try {
-        const { data, error: supaError } = await supabase
+        // Race the query against a timeout to avoid hanging on RLS issues
+        const queryPromise = supabase
           .from('questions')
           .select('*')
           .eq('status', 'approved')
           .order('id')
 
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Supabase query timed out')), 5000)
+        )
+
+        const { data, error: supaError } = await Promise.race([queryPromise, timeoutPromise])
+
         if (supaError) throw supaError
 
-        if (data && data.length > 0) {
-          // Transform Supabase rows to match our schema
-          const transformed = data.map(row => ({
-            id: row.id,
-            question: row.question,
-            answer: row.answer,
-            source: row.source || null,
-            imageUrl: row.image_url || null,
-            difficulty: row.difficulty || 3,
-            type: row.type || 'straight',
-            weights: row.weights,
-          }))
-          setQuestions(transformed)
-          setSource('supabase')
-          setLoading(false)
-          return
-        }
+        // Transform Supabase rows to match our schema
+        const transformed = (data || []).map(row => ({
+          id: row.id,
+          question: row.question,
+          answer: row.answer,
+          source: row.source || null,
+          imageUrl: row.image_url || null,
+          mediaUrl: row.media_url || null,
+          difficulty: row.difficulty || 5,
+          type: row.type || 'straight',
+          weights: row.weights,
+        }))
+        setQuestions(transformed.length > 0 ? transformed : localQuestions)
+        setSource(transformed.length > 0 ? 'supabase' : 'local')
+        setLoading(false)
+        return
       } catch (err) {
         console.warn('Supabase fetch failed, falling back to local:', err.message)
         setError(err.message)

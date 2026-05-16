@@ -12,12 +12,25 @@ export function useAuth() {
 
   const fetchProfile = useCallback(async (userId) => {
     if (!supabase || !userId) return null
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-    return data
+    try {
+      const queryPromise = supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile fetch timed out')), 4000)
+      )
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+      if (error) {
+        console.warn('Profile fetch failed:', error.message)
+        return null
+      }
+      return data
+    } catch (err) {
+      console.warn('Profile fetch error:', err.message)
+      return null
+    }
   }, [])
 
   useEffect(() => {
@@ -44,7 +57,8 @@ export function useAuth() {
         setUser(currentUser)
         if (currentUser) {
           const p = await fetchProfile(currentUser.id)
-          setProfile(p)
+          // Only update profile if fetch succeeded; preserve existing on timeout
+          if (p) setProfile(p)
         } else {
           setProfile(null)
         }
@@ -65,7 +79,14 @@ export function useAuth() {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      if (supabase) {
+        const { error } = await supabase.auth.signOut()
+        if (error) console.warn('Sign out error:', error.message)
+      }
+    } catch (err) {
+      console.warn('Sign out exception:', err)
+    }
     setUser(null)
     setProfile(null)
   }
