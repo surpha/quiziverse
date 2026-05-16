@@ -28,6 +28,21 @@ create policy "Allow public insert access"
 -- Optional: Create a storage bucket for question images
 -- Go to Storage in your Supabase dashboard and create a bucket called "question-images"
 -- Set it to public so images can be displayed without auth
+-- Then run this policy to allow anonymous uploads:
+
+-- Allow anyone to upload images to the question-images bucket
+insert into storage.buckets (id, name, public) values ('question-images', 'question-images', true)
+on conflict (id) do nothing;
+
+create policy "Allow public upload to question-images"
+  on storage.objects for insert
+  to anon
+  with check (bucket_id = 'question-images');
+
+create policy "Allow public read from question-images"
+  on storage.objects for select
+  to anon
+  using (bucket_id = 'question-images');
 
 -- Sample insert (matches your local schema):
 insert into questions (id, question, answer, source, image_url, weights) values

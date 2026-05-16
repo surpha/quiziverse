@@ -10,6 +10,9 @@ function ContributeForm({ onClose, onSubmitted }) {
   const [answer, setAnswer] = useState('')
   const [source, setSource] = useState('')
   const [imageUrl, setImageUrl] = useState('')
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [imageMode, setImageMode] = useState('upload') // 'upload' | 'url'
   const [weights, setWeights] = useState(emptyWeights())
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -17,6 +20,41 @@ function ContributeForm({ onClose, onSubmitted }) {
 
   const handleWeightChange = (domain, value) => {
     setWeights(prev => ({ ...prev, [domain]: Number(value) }))
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be under 5MB.')
+      return
+    }
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+    setError(null)
+  }
+
+  const uploadImage = async () => {
+    if (!imageFile) return null
+
+    const ext = imageFile.name.split('.').pop()
+    const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}.${ext}`
+
+    const { data, error: uploadError } = await supabase.storage
+      .from('question-images')
+      .upload(fileName, imageFile, { contentType: imageFile.type })
+
+    if (uploadError) throw new Error(`Image upload failed: ${uploadError.message}`)
+
+    const { data: urlData } = supabase.storage
+      .from('question-images')
+      .getPublicUrl(data.path)
+
+    return urlData.publicUrl
   }
 
   const handleSubmit = async (e) => {
@@ -35,31 +73,38 @@ function ContributeForm({ onClose, onSubmitted }) {
 
     setSubmitting(true)
 
-    const id = `q_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+    try {
+      // Resolve final image URL
+      let finalImageUrl = null
+      if (imageMode === 'upload' && imageFile) {
+        finalImageUrl = await uploadImage()
+      } else if (imageMode === 'url' && imageUrl.trim()) {
+        finalImageUrl = imageUrl.trim()
+      }
 
-    const { error: insertError } = await supabase
-      .from('questions')
-      .insert({
-        id,
-        question: question.trim(),
-        answer: answer.trim(),
-        source: source.trim() || null,
-        image_url: imageUrl.trim() || null,
-        weights,
-      })
+      const id = `q_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 
-    setSubmitting(false)
+      const { error: insertError } = await supabase
+        .from('questions')
+        .insert({
+          id,
+          question: question.trim(),
+          answer: answer.trim(),
+          source: source.trim() || null,
+          image_url: finalImageUrl,
+          weights,
+        })
 
-    if (insertError) {
-      setError(insertError.message)
-      return
+      if (insertError) throw new Error(insertError.message)
+
+      setSuccess(true)
+      onSubmitted()
+      setTimeout(() => onClose(), 1500)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
     }
-
-    setSuccess(true)
-    onSubmitted()
-
-    // Auto-close after brief delay
-    setTimeout(() => onClose(), 1500)
   }
 
   return (
@@ -115,23 +160,71 @@ function ContributeForm({ onClose, onSubmitted }) {
               />
             </div>
 
-            {/* Image URL */}
+            {/* Image */}
             <div>
-              <label className="text-gray-300 text-sm block mb-1">Image URL</label>
-              <input
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                placeholder="https://..."
-              />
-              {imageUrl && (
-                <img
-                  src={imageUrl}
-                  alt="Preview"
-                  className="mt-2 rounded-lg max-h-24 object-cover border border-gray-700"
-                  onError={(e) => { e.target.style.display = 'none' }}
-                />
+              <label className="text-gray-300 text-sm block mb-2">Image (optional)</label>
+              {/* Toggle between upload and URL */}
+              <div className="flex gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setImageMode('upload')}
+                  className={`px-3 py-1 text-xs rounded-md cursor-pointer transition-colors ${
+                    imageMode === 'upload'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Upload File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageMode('url')}
+                  className={`px-3 py-1 text-xs rounded-md cursor-pointer transition-colors ${
+                    imageMode === 'url'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Paste URL
+                </button>
+              </div>
+
+              {imageMode === 'upload' ? (
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="w-full text-sm text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:bg-gray-800 file:text-gray-300 hover:file:bg-gray-700 file:cursor-pointer cursor-pointer"
+                  />
+                  {imagePreview && (
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="mt-2 rounded-lg max-h-24 object-cover border border-gray-700"
+                    />
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <input
+                    type="url"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    placeholder="https://i.imgur.com/example.jpg"
+                  />
+                  <p className="text-gray-600 text-xs mt-1">Works with Imgur, Unsplash, Wikimedia, or any direct image URL</p>
+                  {imageUrl && (
+                    <img
+                      src={imageUrl}
+                      alt="Preview"
+                      className="mt-2 rounded-lg max-h-24 object-cover border border-gray-700"
+                      onError={(e) => { e.target.style.display = 'none' }}
+                      onLoad={(e) => { e.target.style.display = 'block' }}
+                    />
+                  )}
+                </div>
               )}
             </div>
 
