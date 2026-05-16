@@ -19,6 +19,7 @@ export function useQuestions() {
         const { data, error: supaError } = await supabase
           .from('questions')
           .select('*')
+          .eq('status', 'approved')
           .order('id')
 
         if (supaError) throw supaError

@@ -5,14 +5,20 @@ import QuestionCard from './components/QuestionCard'
 import Legend from './components/Legend'
 import FilterPanel from './components/FilterPanel'
 import ContributeForm from './components/ContributeForm'
+import AuthModal from './components/AuthModal'
+import AdminPanel from './components/AdminPanel'
 import { useQuestions } from './hooks/useQuestions'
+import { useAuth } from './hooks/useAuth'
 
 function App() {
   const { questions, loading, source, refetch } = useQuestions()
+  const { user, profile, isAdmin, loading: authLoading, signIn, signUp, signOut } = useAuth()
   const [selectedQuestion, setSelectedQuestion] = useState(null)
   const [filters, setFilters] = useState({}) // { domain: minWeight }
   const [isPlayMode, setIsPlayMode] = useState(false)
   const [showContribute, setShowContribute] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
+  const [showAdmin, setShowAdmin] = useState(false)
 
   const pickRandom = useCallback(() => {
     if (questions.length === 0) return
@@ -58,8 +64,38 @@ function App() {
         </span>
       </div>
 
+      {/* Top-right auth area */}
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+        {authLoading ? null : user ? (
+          <>
+            {isAdmin && (
+              <button
+                onClick={() => setShowAdmin(true)}
+                className="px-3 py-1.5 bg-amber-600/80 hover:bg-amber-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+              >
+                ⚙ Admin
+              </button>
+            )}
+            <span className="text-gray-400 text-xs truncate max-w-[120px]">{user.email}</span>
+            <button
+              onClick={signOut}
+              className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg transition-colors cursor-pointer"
+            >
+              Sign Out
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setShowAuth(true)}
+            className="px-4 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+          >
+            Sign In
+          </button>
+        )}
+      </div>
+
       {/* Bottom action buttons */}
-      {!selectedQuestion && !showContribute && (
+      {!selectedQuestion && !showContribute && !showAuth && !showAdmin && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-3">
           <button
             onClick={startPlayMode}
@@ -96,6 +132,19 @@ function App() {
           onClose={() => setShowContribute(false)}
           onSubmitted={refetch}
         />
+      )}
+
+      {showAuth && (
+        <AuthModal
+          onClose={() => setShowAuth(false)}
+          onAuth={() => setShowAuth(false)}
+          signIn={signIn}
+          signUp={signUp}
+        />
+      )}
+
+      {showAdmin && (
+        <AdminPanel onClose={() => { setShowAdmin(false); refetch() }} />
       )}
     </div>
   )

@@ -10,22 +10,87 @@ create table if not exists questions (
   difficulty smallint not null default 3 check (difficulty between 1 and 5),
   type text not null default 'straight',
   weights jsonb not null default '{}'::jsonb,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  submitted_by uuid references auth.users(id),
+  reviewed_by uuid references auth.users(id),
+  reviewed_at timestamptz,
   created_at timestamptz default now()
 );
 
--- Enable Row Level Security (read-only for anonymous users)
+-- Profiles table for role management
+create table if not exists profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  role text not null default 'user' check (role in ('user', 'admin')),
+  created_at timestamptz default now()
+);
+
+-- Auto-create profile on signup
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email, role)
+  values (new.id, new.email, 'user');
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- Enable Row Level Security
 alter table questions enable row level security;
+alter table profiles enable row level security;
 
-create policy "Allow public read access"
+-- Profiles: users can read their own profile, admins can read all
+create policy "Users can read own profile"
+  on profiles for select
+  using (auth.uid() = id);
+
+create policy "Admins can read all profiles"
+  on profiles for select
+  using (
+    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+  );
+
+-- Questions: everyone can see approved questions
+create policy "Public read approved questions"
   on questions for select
-  to anon
-  using (true);
+  to anon, authenticated
+  using (status = 'approved');
 
--- Allow anonymous users to insert (contribute) new questions
-create policy "Allow public insert access"
+-- Admins can see all questions (for review)
+create policy "Admins read all questions"
+  on questions for select
+  to authenticated
+  using (
+    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+  );
+
+-- Authenticated users can insert (contribute) questions
+create policy "Authenticated users can contribute"
+  on questions for insert
+  to authenticated
+  with check (true);
+
+-- Anonymous users can also contribute (pending review)
+create policy "Anon users can contribute"
   on questions for insert
   to anon
   with check (true);
+
+-- Admins can update questions (approve/reject)
+create policy "Admins can update questions"
+  on questions for update
+  to authenticated
+  using (
+    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+  )
+  with check (
+    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+  );
 
 -- Optional: Create a storage bucket for question images
 -- Go to Storage in your Supabase dashboard and create a bucket called "question-images"
@@ -46,9 +111,12 @@ create policy "Allow public read from question-images"
   to anon
   using (bucket_id = 'question-images');
 
--- Sample insert (matches your local schema):
-insert into questions (id, question, answer, source, image_url, weights) values
-  ('q001', 'What is the time complexity of binary search?', 'O(log n) — each comparison halves the search space.', 'Introduction to Algorithms (CLRS)', null, '{"technology": 9, "history": 2, "geography": 1, "science": 7, "literature": 1, "arts": 1, "music": 1, "society": 2, "religion": 1, "popCulture": 1, "sports": 1, "lifestyle": 1}'),
-  ('q002', 'Who painted the Sistine Chapel ceiling?', 'Michelangelo, between 1508 and 1512.', 'Lives of the Artists — Giorgio Vasari', null, '{"technology": 1, "history": 9, "geography": 3, "science": 1, "literature": 2, "arts": 10, "music": 1, "society": 3, "religion": 8, "popCulture": 2, "sports": 1, "lifestyle": 1}'),
-  ('q003', 'What is the double-slit experiment?', 'An experiment demonstrating that light and matter exhibit wave-particle duality — particles create an interference pattern when not observed, but behave as particles when measured.', 'Feynman Lectures on Physics, Vol. III', null, '{"technology": 4, "history": 5, "geography": 1, "science": 10, "literature": 1, "arts": 1, "music": 1, "society": 3, "religion": 2, "popCulture": 2, "sports": 1, "lifestyle": 1}')
+-- Sample insert (matches your local schema — inserted as 'approved'):
+insert into questions (id, question, answer, source, image_url, weights, status) values
+  ('q001', 'What is the time complexity of binary search?', 'O(log n) — each comparison halves the search space.', 'Introduction to Algorithms (CLRS)', null, '{"technology": 9, "history": 2, "geography": 1, "science": 7, "literature": 1, "arts": 1, "music": 1, "society": 2, "religion": 1, "popCulture": 1, "sports": 1, "lifestyle": 1}', 'approved'),
+  ('q002', 'Who painted the Sistine Chapel ceiling?', 'Michelangelo, between 1508 and 1512.', 'Lives of the Artists — Giorgio Vasari', null, '{"technology": 1, "history": 9, "geography": 3, "science": 1, "literature": 2, "arts": 10, "music": 1, "society": 3, "religion": 8, "popCulture": 2, "sports": 1, "lifestyle": 1}', 'approved'),
+  ('q003', 'What is the double-slit experiment?', 'An experiment demonstrating that light and matter exhibit wave-particle duality — particles create an interference pattern when not observed, but behave as particles when measured.', 'Feynman Lectures on Physics, Vol. III', null, '{"technology": 4, "history": 5, "geography": 1, "science": 10, "literature": 1, "arts": 1, "music": 1, "society": 3, "religion": 2, "popCulture": 2, "sports": 1, "lifestyle": 1}', 'approved')
 on conflict (id) do nothing;
+
+-- To make a user an admin, run:
+-- update profiles set role = 'admin' where email = 'your-email@example.com';

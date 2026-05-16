@@ -98,13 +98,13 @@ function ContributeForm({ onClose, onSubmitted }) {
           difficulty,
           type: questionType,
           weights,
+          status: 'pending',
         })
 
       if (insertError) throw new Error(insertError.message)
 
       setSuccess(true)
-      onSubmitted()
-      setTimeout(() => onClose(), 1500)
+      setTimeout(() => onClose(), 2000)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -126,7 +126,7 @@ function ContributeForm({ onClose, onSubmitted }) {
         <h2 className="text-white text-lg font-semibold mb-4">Contribute a Question</h2>
 
         {success ? (
-          <p className="text-green-400 text-center py-8">✓ Question added to the graph!</p>
+          <p className="text-green-400 text-center py-8">✓ Question submitted for review! An admin will approve it soon.</p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Question */}
