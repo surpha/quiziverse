@@ -7,6 +7,7 @@ import FilterPanel from './components/FilterPanel'
 import ContributeForm from './components/ContributeForm'
 import AuthModal from './components/AuthModal'
 import AdminPanel from './components/AdminPanel'
+import LoadingScreen from './components/LoadingScreen'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { computePositions } from './utils/coordinateMapper'
@@ -76,11 +77,7 @@ function App() {
   }
 
   if (loading) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-black">
-        <p className="text-purple-400 text-lg animate-pulse">Loading Quiziverse…</p>
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   return (
