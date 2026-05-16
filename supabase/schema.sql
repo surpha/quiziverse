@@ -19,6 +19,12 @@ create policy "Allow public read access"
   to anon
   using (true);
 
+-- Allow anonymous users to insert (contribute) new questions
+create policy "Allow public insert access"
+  on questions for insert
+  to anon
+  with check (true);
+
 -- Optional: Create a storage bucket for question images
 -- Go to Storage in your Supabase dashboard and create a bucket called "question-images"
 -- Set it to public so images can be displayed without auth

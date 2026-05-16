@@ -4,13 +4,15 @@ import Scene from './components/Scene'
 import QuestionCard from './components/QuestionCard'
 import Legend from './components/Legend'
 import FilterPanel from './components/FilterPanel'
+import ContributeForm from './components/ContributeForm'
 import { useQuestions } from './hooks/useQuestions'
 
 function App() {
-  const { questions, loading, source } = useQuestions()
+  const { questions, loading, source, refetch } = useQuestions()
   const [selectedQuestion, setSelectedQuestion] = useState(null)
   const [filters, setFilters] = useState({}) // { domain: minWeight }
   const [isPlayMode, setIsPlayMode] = useState(false)
+  const [showContribute, setShowContribute] = useState(false)
 
   const pickRandom = useCallback(() => {
     if (questions.length === 0) return
@@ -56,17 +58,28 @@ function App() {
         </span>
       </div>
 
-      {/* Random Play button */}
-      {!selectedQuestion && (
-        <button
-          onClick={startPlayMode}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-full shadow-lg shadow-purple-500/30 transition-colors cursor-pointer flex items-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-          Random Play
-        </button>
+      {/* Bottom action buttons */}
+      {!selectedQuestion && !showContribute && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-3">
+          <button
+            onClick={startPlayMode}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-full shadow-lg shadow-purple-500/30 transition-colors cursor-pointer flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            Random Play
+          </button>
+          <button
+            onClick={() => setShowContribute(true)}
+            className="px-6 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white font-medium rounded-full shadow-lg transition-colors cursor-pointer flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Contribute
+          </button>
+        </div>
       )}
 
       {selectedQuestion && (
@@ -75,6 +88,13 @@ function App() {
           onClose={handleClose}
           onNext={handleNext}
           isPlayMode={isPlayMode}
+        />
+      )}
+
+      {showContribute && (
+        <ContributeForm
+          onClose={() => setShowContribute(false)}
+          onSubmitted={refetch}
         />
       )}
     </div>

@@ -118,5 +118,17 @@
       "literature": 1, "arts": 1, "music": 1, "society": 5,
       "religion": 1, "popCulture": 7, "sports": 10, "lifestyle": 4
     }
+  },
+  {
+    "id": "q011",
+    "question": "Which iconic monument is shown in this image?",
+    "answer": "The Taj Mahal — a white marble mausoleum in Agra, India, built by Mughal Emperor Shah Jahan in memory of his wife Mumtaz Mahal, completed in 1653.",
+    "source": "UNESCO World Heritage",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Taj_Mahal_%28Edited%29.jpeg/1280px-Taj_Mahal_%28Edited%29.jpeg",
+    "weights": {
+      "technology": 1, "history": 9, "geography": 10, "science": 2,
+      "literature": 2, "arts": 9, "music": 1, "society": 5,
+      "religion": 6, "popCulture": 4, "sports": 1, "lifestyle": 3
+    }
   }
 ]
