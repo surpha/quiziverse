@@ -2,7 +2,7 @@
 
 **The Knowledge Galaxy** — An interactive 3D knowledge graph where questions exist as glowing stars on a spherical universe.
 
-🌐 **Live:** [quiziverse.vercel.app](https://quiziverse.vercel.app)
+🌐 **Live:** [quiziverse-tau.vercel.app](https://quiziverse-tau.vercel.app/)
 
 ---
 
