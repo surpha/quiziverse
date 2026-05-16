@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import DOMAINS, { DOMAIN_KEYS } from '../utils/domainConfig'
 import QUESTION_TYPES, { QUESTION_TYPE_KEYS } from '../utils/questionTypes'
+import { classifyQuestion, isLLMConfigured } from '../utils/llmJudge'
 
 const emptyWeights = () =>
   Object.fromEntries(DOMAIN_KEYS.map(d => [d, 1]))
@@ -20,9 +21,27 @@ function ContributeForm({ onClose, onSubmitted }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
+  const [aiClassifying, setAiClassifying] = useState(false)
 
   const handleWeightChange = (domain, value) => {
     setWeights(prev => ({ ...prev, [domain]: Number(value) }))
+  }
+
+  const handleAiSuggest = async () => {
+    if (!question.trim() || !answer.trim()) {
+      setError('Fill in question and answer first for AI to classify.')
+      return
+    }
+    setAiClassifying(true)
+    setError(null)
+    try {
+      const result = await classifyQuestion(question, answer)
+      setDifficulty(result.difficulty)
+      setWeights(result.weights)
+    } catch (err) {
+      setError(`AI suggestion failed: ${err.message}`)
+    }
+    setAiClassifying(false)
   }
 
   const handleFileChange = (e) => {
@@ -164,6 +183,18 @@ function ContributeForm({ onClose, onSubmitted }) {
                 placeholder="Book, website, or reference..."
               />
             </div>
+
+            {/* AI Suggest button */}
+            {isLLMConfigured() && (
+              <button
+                type="button"
+                onClick={handleAiSuggest}
+                disabled={aiClassifying}
+                className="w-full py-2 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 disabled:opacity-50 text-blue-300 text-xs font-medium rounded-lg transition-colors cursor-pointer"
+              >
+                {aiClassifying ? '🔄 AI is analyzing...' : '🤖 AI Suggest Difficulty & Domains'}
+              </button>
+            )}
 
             {/* Difficulty & Type row */}
             <div className="grid grid-cols-2 gap-4">
