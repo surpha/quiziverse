@@ -2,12 +2,10 @@ import { DOMAIN_KEYS } from './domainConfig'
 
 /**
  * LLM-as-Judge: Classifies a question's difficulty (1-10) and domain weights.
- * Uses OpenAI-compatible API. Requires VITE_OPENAI_API_KEY env var.
+ * Uses Google Gemini API. Requires VITE_GEMINI_API_KEY env var.
  *
  * Returns { difficulty, weights, reasoning } or null on failure.
  */
-
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions'
 
 const SYSTEM_PROMPT = `You are a question classifier for a knowledge graph called Quiziverse.
 
@@ -43,43 +41,43 @@ Respond ONLY with valid JSON in this exact format:
 }`
 
 export function isLLMConfigured() {
-  return !!import.meta.env.VITE_OPENAI_API_KEY
+  return !!import.meta.env.VITE_GEMINI_API_KEY
 }
 
 export async function classifyQuestion(question, answer) {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
   if (!apiKey) {
-    throw new Error('VITE_OPENAI_API_KEY not configured')
+    throw new Error('VITE_GEMINI_API_KEY not configured')
   }
+
+  const model = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash'
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
   const userMessage = `Question: ${question}\nAnswer: ${answer}`
 
-  const response = await fetch(OPENAI_API_URL, {
+  const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
-      temperature: 0.3,
-      max_tokens: 300,
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{ parts: [{ text: userMessage }] }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 400,
+        responseMimeType: 'application/json',
+      },
     }),
   })
 
   if (!response.ok) {
     const err = await response.text()
-    throw new Error(`LLM API error: ${response.status} - ${err}`)
+    throw new Error(`Gemini API error: ${response.status} - ${err}`)
   }
 
   const data = await response.json()
-  const content = data.choices?.[0]?.message?.content
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text
 
-  if (!content) throw new Error('Empty LLM response')
+  if (!content) throw new Error('Empty Gemini response')
 
   // Parse JSON from response (handle markdown code blocks)
   const jsonStr = content.replace(/```json?\n?/g, '').replace(/```/g, '').trim()
