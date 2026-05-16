@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import DOMAINS from '../utils/domainConfig'
+import QUESTION_TYPES from '../utils/questionTypes'
 
 function QuestionCard({ question, onClose, onNext, isPlayMode }) {
   const [revealed, setRevealed] = useState(false)
@@ -8,6 +9,9 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
     setRevealed(false)
     onNext()
   }
+
+  const typeInfo = QUESTION_TYPES[question.type] || QUESTION_TYPES.straight
+  const difficultyDots = question.difficulty || 3
 
   return (
     <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
@@ -19,6 +23,18 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
         >
           &times;
         </button>
+
+        {/* Type badge + Difficulty */}
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-xs px-2 py-1 rounded-md bg-gray-800 text-gray-300 border border-gray-700">
+            {typeInfo.icon} {typeInfo.label}
+          </span>
+          <span className="text-xs text-gray-500 flex items-center gap-0.5" title={`Difficulty: ${difficultyDots}/5`}>
+            {Array.from({ length: 5 }, (_, i) => (
+              <span key={i} className={i < difficultyDots ? 'text-yellow-400' : 'text-gray-700'}>●</span>
+            ))}
+          </span>
+        </div>
 
         {/* Question */}
         <p className="text-white text-lg font-medium mb-4 leading-relaxed pr-6">

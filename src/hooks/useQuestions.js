@@ -31,6 +31,8 @@ export function useQuestions() {
             answer: row.answer,
             source: row.source || null,
             imageUrl: row.image_url || null,
+            difficulty: row.difficulty || 3,
+            type: row.type || 'straight',
             weights: row.weights,
           }))
           setQuestions(transformed)

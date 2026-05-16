@@ -7,6 +7,8 @@ create table if not exists questions (
   answer text not null,
   source text,
   image_url text,
+  difficulty smallint not null default 3 check (difficulty between 1 and 5),
+  type text not null default 'straight',
   weights jsonb not null default '{}'::jsonb,
   created_at timestamptz default now()
 );

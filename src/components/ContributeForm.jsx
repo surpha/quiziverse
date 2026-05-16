@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import DOMAINS, { DOMAIN_KEYS } from '../utils/domainConfig'
+import QUESTION_TYPES, { QUESTION_TYPE_KEYS } from '../utils/questionTypes'
 
 const emptyWeights = () =>
   Object.fromEntries(DOMAIN_KEYS.map(d => [d, 1]))
@@ -13,6 +14,8 @@ function ContributeForm({ onClose, onSubmitted }) {
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [imageMode, setImageMode] = useState('upload') // 'upload' | 'url'
+  const [difficulty, setDifficulty] = useState(3)
+  const [questionType, setQuestionType] = useState('straight')
   const [weights, setWeights] = useState(emptyWeights())
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -92,6 +95,8 @@ function ContributeForm({ onClose, onSubmitted }) {
           answer: answer.trim(),
           source: source.trim() || null,
           image_url: finalImageUrl,
+          difficulty,
+          type: questionType,
           weights,
         })
 
@@ -158,6 +163,42 @@ function ContributeForm({ onClose, onSubmitted }) {
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
                 placeholder="Book, website, or reference..."
               />
+            </div>
+
+            {/* Difficulty & Type row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-gray-300 text-sm block mb-1">Difficulty (1–5)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(Number(e.target.value))}
+                    className="flex-1 h-1 accent-purple-500"
+                  />
+                  <span className="text-white text-sm font-medium w-5 text-center">{difficulty}</span>
+                </div>
+                <div className="flex justify-between text-[10px] text-gray-600 mt-0.5">
+                  <span>Easy</span>
+                  <span>Hard</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-gray-300 text-sm block mb-1">Question Type</label>
+                <select
+                  value={questionType}
+                  onChange={(e) => setQuestionType(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                >
+                  {QUESTION_TYPE_KEYS.map(key => (
+                    <option key={key} value={key}>
+                      {QUESTION_TYPES[key].icon} {QUESTION_TYPES[key].label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Image */}
