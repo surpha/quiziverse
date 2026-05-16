@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Stars } from '@react-three/drei'
+import * as THREE from 'three'
 import StarNode from './StarNode'
 import { computePositions } from '../utils/coordinateMapper'
 
@@ -31,7 +32,7 @@ function SpinningGlobe({ children, isSpinning }) {
 
   useFrame((_, delta) => {
     if (groupRef.current && isSpinning) {
-      groupRef.current.rotation.y += delta * 4.0 // fast spin
+      groupRef.current.rotation.y += delta * 4.0
       groupRef.current.rotation.x += delta * 1.5
     }
   })
@@ -39,7 +40,26 @@ function SpinningGlobe({ children, isSpinning }) {
   return <group ref={groupRef}>{children}</group>
 }
 
-function Scene({ onSelectQuestion, filters, questions, isSpinning }) {
+/** Smoothly zooms camera toward a target position */
+function CameraZoom({ target, active }) {
+  const { camera } = useThree()
+  const targetVec = useRef(new THREE.Vector3())
+
+  useFrame((_, delta) => {
+    if (!active || !target) return
+
+    // Position camera offset from the target (slightly back)
+    targetVec.current.set(target[0], target[1], target[2] + 3)
+
+    // Lerp camera position toward target
+    camera.position.lerp(targetVec.current, delta * 3.0)
+    camera.lookAt(target[0], target[1], target[2])
+  })
+
+  return null
+}
+
+function Scene({ onSelectQuestion, filters, questions, isSpinning, isZooming, zoomTarget }) {
   const positionedQuestions = useMemo(() => computePositions(questions), [questions])
 
   return (
@@ -59,6 +79,9 @@ function Scene({ onSelectQuestion, filters, questions, isSpinning }) {
         speed={1}
       />
 
+      {/* Camera zoom animation */}
+      <CameraZoom target={zoomTarget} active={isZooming} />
+
       {/* Globe content that spins during random play */}
       <SpinningGlobe isSpinning={isSpinning}>
         {/* Difficulty orbit shells */}
@@ -76,11 +99,11 @@ function Scene({ onSelectQuestion, filters, questions, isSpinning }) {
         ))}
       </SpinningGlobe>
 
-      {/* Camera controls — disabled during spin */}
+      {/* Camera controls — disabled during spin/zoom */}
       <OrbitControls
-        enablePan={!isSpinning}
-        enableZoom={!isSpinning}
-        enableRotate={!isSpinning}
+        enablePan={!isSpinning && !isZooming}
+        enableZoom={!isSpinning && !isZooming}
+        enableRotate={!isSpinning && !isZooming}
         minDistance={2}
         maxDistance={35}
       />

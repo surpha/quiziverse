@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import Scene from './components/Scene'
 import QuestionCard from './components/QuestionCard'
@@ -9,6 +9,7 @@ import AuthModal from './components/AuthModal'
 import AdminPanel from './components/AdminPanel'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
+import { computePositions } from './utils/coordinateMapper'
 
 function App() {
   const { questions, loading, source, refetch } = useQuestions()
@@ -20,30 +21,47 @@ function App() {
   const [showAuth, setShowAuth] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
   const [isSpinning, setIsSpinning] = useState(false)
+  const [isZooming, setIsZooming] = useState(false)
+  const [zoomTarget, setZoomTarget] = useState(null)
+  const [showCard, setShowCard] = useState(false)
   const spinTimeoutRef = useRef(null)
 
-  const pickRandom = useCallback(() => {
-    if (questions.length === 0) return
-    const idx = Math.floor(Math.random() * questions.length)
-    setSelectedQuestion(questions[idx])
-  }, [questions])
+  // Pre-compute positions so we know where each question lives
+  const positionedQuestions = useMemo(() => computePositions(questions), [questions])
+
+  const pickRandomAndZoom = useCallback(() => {
+    if (positionedQuestions.length === 0) return
+    const idx = Math.floor(Math.random() * positionedQuestions.length)
+    const chosen = positionedQuestions[idx]
+    setSelectedQuestion(chosen)
+    setZoomTarget(chosen.position)
+    setIsZooming(true)
+    // Zoom takes ~1s, then show card
+    spinTimeoutRef.current = setTimeout(() => {
+      setIsZooming(false)
+      setShowCard(true)
+    }, 1200)
+  }, [positionedQuestions])
 
   const startPlayMode = () => {
     setIsPlayMode(true)
+    setShowCard(false)
     setIsSpinning(true)
-    // Spin for 1.5s, then pick a question
+    // Spin for 1.5s, then zoom to question
     spinTimeoutRef.current = setTimeout(() => {
       setIsSpinning(false)
-      pickRandom()
+      pickRandomAndZoom()
     }, 1500)
   }
 
   const handleNext = () => {
+    setShowCard(false)
     setSelectedQuestion(null)
+    setZoomTarget(null)
     setIsSpinning(true)
     spinTimeoutRef.current = setTimeout(() => {
       setIsSpinning(false)
-      pickRandom()
+      pickRandomAndZoom()
     }, 1500)
   }
 
@@ -51,6 +69,9 @@ function App() {
     setSelectedQuestion(null)
     setIsPlayMode(false)
     setIsSpinning(false)
+    setIsZooming(false)
+    setZoomTarget(null)
+    setShowCard(false)
     if (spinTimeoutRef.current) clearTimeout(spinTimeoutRef.current)
   }
 
@@ -65,7 +86,14 @@ function App() {
   return (
     <div className="w-full h-full relative">
       <Canvas camera={{ position: [0, 0, 12], fov: 60 }}>
-        <Scene onSelectQuestion={setSelectedQuestion} filters={filters} questions={questions} isSpinning={isSpinning} />
+        <Scene
+          onSelectQuestion={(q) => { setSelectedQuestion(q); setShowCard(true) }}
+          filters={filters}
+          questions={questions}
+          isSpinning={isSpinning}
+          isZooming={isZooming}
+          zoomTarget={zoomTarget}
+        />
       </Canvas>
 
       <Legend />
@@ -108,7 +136,7 @@ function App() {
       </div>
 
       {/* Bottom center — Random Play + Filter */}
-      {!selectedQuestion && !showContribute && !showAuth && !showAdmin && !isSpinning && (
+      {!showCard && !selectedQuestion && !showContribute && !showAuth && !showAdmin && !isSpinning && !isZooming && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-end gap-3">
           <FilterPanel filters={filters} onFiltersChange={setFilters} />
           <button
@@ -124,9 +152,11 @@ function App() {
       )}
 
       {/* Spinning indicator */}
-      {isSpinning && (
+      {(isSpinning || isZooming) && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-          <p className="text-purple-400 text-sm animate-pulse">Spinning the globe...</p>
+          <p className="text-purple-400 text-sm animate-pulse">
+            {isSpinning ? 'Spinning the globe...' : 'Zooming in...'}
+          </p>
         </div>
       )}
 
@@ -145,7 +175,7 @@ function App() {
         </div>
       )}
 
-      {selectedQuestion && (
+      {showCard && selectedQuestion && (
         <QuestionCard
           question={selectedQuestion}
           onClose={handleClose}
