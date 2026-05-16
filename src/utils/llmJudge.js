@@ -2,7 +2,9 @@ import { DOMAIN_KEYS } from './domainConfig'
 
 /**
  * LLM-as-Judge: Classifies a question's difficulty (1-10) and domain weights.
- * Uses Google Gemini API. Requires VITE_GEMINI_API_KEY env var.
+ * Supports multiple providers via VITE_LLM_PROVIDER env var:
+ *   - 'groq' (default) — free tier, uses Llama models
+ *   - 'gemini' — Google Gemini API
  *
  * Returns { difficulty, weights, reasoning } or null on failure.
  */
@@ -41,19 +43,49 @@ Respond ONLY with valid JSON in this exact format:
 }`
 
 export function isLLMConfigured() {
-  return !!import.meta.env.VITE_GEMINI_API_KEY
+  const provider = import.meta.env.VITE_LLM_PROVIDER || 'groq'
+  if (provider === 'gemini') return !!import.meta.env.VITE_GEMINI_API_KEY
+  return !!import.meta.env.VITE_GROQ_API_KEY
 }
 
-export async function classifyQuestion(question, answer) {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
-  if (!apiKey) {
-    throw new Error('VITE_GEMINI_API_KEY not configured')
+async function callGroq(userMessage) {
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY
+  if (!apiKey) throw new Error('VITE_GROQ_API_KEY not configured')
+
+  const model = import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0.3,
+      max_tokens: 400,
+    }),
+  })
+
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`Groq API error: ${response.status} - ${err}`)
   }
 
-  const model = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash'
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+  const data = await response.json()
+  return data.choices?.[0]?.message?.content
+}
 
-  const userMessage = `Question: ${question}\nAnswer: ${answer}`
+async function callGemini(userMessage) {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  if (!apiKey) throw new Error('VITE_GEMINI_API_KEY not configured')
+
+  const model = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash-lite'
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
   const response = await fetch(url, {
     method: 'POST',
@@ -75,9 +107,18 @@ export async function classifyQuestion(question, answer) {
   }
 
   const data = await response.json()
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text
+  return data.candidates?.[0]?.content?.parts?.[0]?.text
+}
 
-  if (!content) throw new Error('Empty Gemini response')
+export async function classifyQuestion(question, answer) {
+  const provider = import.meta.env.VITE_LLM_PROVIDER || 'groq'
+  const userMessage = `Question: ${question}\nAnswer: ${answer}`
+
+  const content = provider === 'gemini'
+    ? await callGemini(userMessage)
+    : await callGroq(userMessage)
+
+  if (!content) throw new Error('Empty LLM response')
 
   // Parse JSON from response (handle markdown code blocks)
   const jsonStr = content.replace(/```json?\n?/g, '').replace(/```/g, '').trim()
@@ -94,5 +135,91 @@ export async function classifyQuestion(question, answer) {
     difficulty,
     weights,
     reasoning: result.reasoning || '',
+  }
+}
+
+const VERIFY_PROMPT = `You are a fact-checking assistant. Given a trivia question and its submitted answer, you must:
+1. Independently determine what you believe the correct answer is.
+2. Compare it with the submitted answer.
+3. Determine if the submitted answer is correct, partially correct, or incorrect.
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "verdict": "correct" | "partially_correct" | "incorrect",
+  "aiAnswer": "<your independent answer>",
+  "explanation": "<brief explanation of why the submitted answer is correct/incorrect, and any nuances>"
+}`
+
+async function callGroqCustom(systemPrompt, userMessage) {
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY
+  if (!apiKey) throw new Error('VITE_GROQ_API_KEY not configured')
+  const model = import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0.2,
+      max_tokens: 500,
+    }),
+  })
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`Groq API error: ${response.status} - ${err}`)
+  }
+  const data = await response.json()
+  return data.choices?.[0]?.message?.content
+}
+
+async function callGeminiCustom(systemPrompt, userMessage) {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  if (!apiKey) throw new Error('VITE_GEMINI_API_KEY not configured')
+  const model = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash-lite'
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ parts: [{ text: userMessage }] }],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 500,
+        responseMimeType: 'application/json',
+      },
+    }),
+  })
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`Gemini API error: ${response.status} - ${err}`)
+  }
+  const data = await response.json()
+  return data.candidates?.[0]?.content?.parts?.[0]?.text
+}
+
+export async function verifyAnswer(question, submittedAnswer) {
+  const provider = import.meta.env.VITE_LLM_PROVIDER || 'groq'
+  const userMessage = `Question: ${question}\nSubmitted Answer: ${submittedAnswer}`
+
+  const content = provider === 'gemini'
+    ? await callGeminiCustom(VERIFY_PROMPT, userMessage)
+    : await callGroqCustom(VERIFY_PROMPT, userMessage)
+
+  if (!content) throw new Error('Empty LLM response')
+
+  const jsonStr = content.replace(/```json?\n?/g, '').replace(/```/g, '').trim()
+  const result = JSON.parse(jsonStr)
+
+  return {
+    verdict: result.verdict || 'unknown',
+    aiAnswer: result.aiAnswer || '',
+    explanation: result.explanation || '',
   }
 }
