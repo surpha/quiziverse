@@ -146,11 +146,23 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
             ))}
         </div>
 
-        {/* Source attribution */}
+        {/* Credits / Source attribution */}
         {question.source && (
-          <p className="mt-4 text-xs text-gray-500 italic">
-            Source: {question.source}
-          </p>
+          <div className="mt-4 px-3 py-2 bg-gray-800/60 border border-gray-700/40 rounded-lg">
+            <span className="text-gray-500 text-xs">Credit: </span>
+            {question.source.match(/^https?:\/\//) ? (
+              <a
+                href={question.source}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-400 text-xs hover:text-purple-300 underline"
+              >
+                {question.source.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}
+              </a>
+            ) : (
+              <span className="text-gray-300 text-xs">{question.source}</span>
+            )}
+          </div>
         )}
 
         {/* Play mode navigation */}

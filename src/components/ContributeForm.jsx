@@ -174,15 +174,15 @@ function ContributeForm({ onClose, onSubmitted }) {
               />
             </div>
 
-            {/* Source */}
+            {/* Credits / Source */}
             <div>
-              <label className="text-gray-300 text-sm block mb-1">Source</label>
+              <label className="text-gray-300 text-sm block mb-1">Credits / Source</label>
               <input
                 type="text"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                placeholder="Book, website, or reference..."
+                placeholder="YT channel, website URL, book, or attribution..."
               />
             </div>
 

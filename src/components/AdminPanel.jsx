@@ -379,7 +379,7 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
                     </select>
                   </div>
                   <div>
-                    <label className="text-gray-400 text-xs block mb-1">Source</label>
+                    <label className="text-gray-400 text-xs block mb-1">Credits / Source</label>
                     <input
                       type="text"
                       value={edit.source}
@@ -680,7 +680,7 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
                     </select>
                   </div>
                   <div>
-                    <label className="text-gray-400 text-xs block mb-1">Source</label>
+                    <label className="text-gray-400 text-xs block mb-1">Credits / Source</label>
                     <input
                       type="text"
                       value={edit.source}
@@ -1044,7 +1044,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
                         </select>
                       </div>
                       <div>
-                        <label className="text-gray-400 text-xs block mb-1">Source</label>
+                        <label className="text-gray-400 text-xs block mb-1">Credits / Source</label>
                         <input
                           type="text"
                           value={edit.source}
