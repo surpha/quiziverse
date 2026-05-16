@@ -21,7 +21,7 @@ function FilterPanel({ filters, onFiltersChange }) {
   const activeCount = Object.keys(filters).length
 
   return (
-    <div className="absolute top-4 right-4 z-20 bg-gray-900/90 border border-gray-700/50 rounded-xl backdrop-blur-sm">
+    <div className="absolute top-52 left-4 z-20 bg-gray-900/90 border border-gray-700/50 rounded-xl backdrop-blur-sm">
       {/* Toggle button */}
       <button
         onClick={() => setExpanded(!expanded)}
