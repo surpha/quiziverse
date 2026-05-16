@@ -3,11 +3,11 @@ import { Canvas } from '@react-three/fiber'
 import Scene from './components/Scene'
 import QuestionCard from './components/QuestionCard'
 import Legend from './components/Legend'
-import FilterPanel from './components/FilterPanel'
 import ContributeForm from './components/ContributeForm'
 import AuthModal from './components/AuthModal'
 import AdminPanel from './components/AdminPanel'
 import LoadingScreen from './components/LoadingScreen'
+import PlayFilters from './components/PlayFilters'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { computePositions } from './utils/coordinateMapper'
@@ -16,11 +16,12 @@ function App() {
   const { questions, loading, source, refetch } = useQuestions()
   const { user, profile, isAdmin, loading: authLoading, signIn, signUp, signOut } = useAuth()
   const [selectedQuestion, setSelectedQuestion] = useState(null)
-  const [filters, setFilters] = useState({}) // { domain: minWeight }
   const [isPlayMode, setIsPlayMode] = useState(false)
   const [showContribute, setShowContribute] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
+  const [showPlayFilters, setShowPlayFilters] = useState(false)
+  const [playFilters, setPlayFilters] = useState(null) // { domains, difficultyMin, difficultyMax, types }
   const [isSpinning, setIsSpinning] = useState(false)
   const [isZooming, setIsZooming] = useState(false)
   const [zoomTarget, setZoomTarget] = useState(null)
@@ -30,11 +31,47 @@ function App() {
   // Pre-compute positions so we know where each question lives
   const positionedQuestions = useMemo(() => computePositions(questions), [questions])
 
+  // Filter pool based on play filters
+  const filteredPool = useMemo(() => {
+    if (!playFilters) return positionedQuestions
+    return positionedQuestions.filter(q => {
+      // Domain filter: question's dominant domain must be in selected domains
+      if (playFilters.domains.length > 0) {
+        const dominantDomain = q.weights
+          ? Object.entries(q.weights).sort((a, b) => b[1] - a[1])[0]?.[0]
+          : null
+        if (!dominantDomain || !playFilters.domains.includes(dominantDomain)) return false
+      }
+      // Difficulty filter
+      const diff = q.difficulty || 5
+      if (diff < playFilters.difficultyMin || diff > playFilters.difficultyMax) return false
+      // Type filter
+      if (playFilters.types.length > 0 && !playFilters.types.includes(q.type)) return false
+      return true
+    })
+  }, [positionedQuestions, playFilters])
+
+  // Track which questions have been shown this session
+  const shownIdsRef = useRef(new Set())
+
   const pickRandomAndZoom = useCallback(() => {
-    if (positionedQuestions.length === 0) return
-    const idx = Math.floor(Math.random() * positionedQuestions.length)
-    const chosen = positionedQuestions[idx]
-    setSelectedQuestion(chosen)
+    // Try filtered pool first, excluding already-shown
+    let pool = filteredPool.filter(q => !shownIdsRef.current.has(q.id))
+    let usedFallback = false
+    if (pool.length === 0 && playFilters) {
+      // Fallback: pick from all questions
+      pool = positionedQuestions.filter(q => !shownIdsRef.current.has(q.id))
+      usedFallback = true
+    }
+    if (pool.length === 0) {
+      // All questions shown — reset
+      shownIdsRef.current.clear()
+      pool = filteredPool.length > 0 ? filteredPool : positionedQuestions
+    }
+    const idx = Math.floor(Math.random() * pool.length)
+    const chosen = pool[idx]
+    shownIdsRef.current.add(chosen.id)
+    setSelectedQuestion({ ...chosen, _fallback: usedFallback })
     setZoomTarget(chosen.position)
     setIsZooming(true)
     // Zoom takes ~1s, then show card
@@ -42,9 +79,12 @@ function App() {
       setIsZooming(false)
       setShowCard(true)
     }, 1200)
-  }, [positionedQuestions])
+  }, [filteredPool, positionedQuestions, playFilters])
 
-  const startPlayMode = () => {
+  const startPlayMode = (filterSettings) => {
+    setPlayFilters(filterSettings)
+    shownIdsRef.current.clear()
+    setShowPlayFilters(false)
     setIsPlayMode(true)
     setShowCard(false)
     setIsSpinning(true)
@@ -73,11 +113,67 @@ function App() {
     setIsZooming(false)
     setZoomTarget(null)
     setShowCard(false)
+    setPlayFilters(null)
     if (spinTimeoutRef.current) clearTimeout(spinTimeoutRef.current)
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return <LoadingScreen />
+  }
+
+  // Not signed in — show landing page with spinning globe + sign-in
+  if (!user) {
+    return (
+      <div className="w-full h-full relative">
+        <Canvas camera={{ position: [0, 0, 18], fov: 60 }}>
+          <Scene
+            onSelectQuestion={() => {}}
+            filters={{}}
+            questions={[]}
+            isSpinning={true}
+            isZooming={false}
+            zoomTarget={null}
+          />
+        </Canvas>
+
+        {/* Brand overlay */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
+          <div className="pointer-events-auto flex flex-col items-center gap-6 px-6">
+            <h1 className="text-5xl font-bold tracking-wider">
+              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
+                QUIZIVERSE
+              </span>
+            </h1>
+            <p className="text-gray-400 text-sm tracking-wide text-center max-w-xs">
+              Explore the knowledge galaxy. Sign in to play, contribute, and discover.
+            </p>
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => setShowAuth(true)}
+                className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-full shadow-lg shadow-purple-500/30 transition-colors cursor-pointer"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => setShowAuth(true)}
+                className="px-6 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white font-medium rounded-full shadow-lg transition-colors cursor-pointer"
+              >
+                Sign Up
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {showAuth && (
+          <AuthModal
+            onClose={() => setShowAuth(false)}
+            onAuth={() => setShowAuth(false)}
+            signIn={signIn}
+            signUp={signUp}
+          />
+        )}
+      </div>
+    )
   }
 
   return (
@@ -85,7 +181,7 @@ function App() {
       <Canvas camera={{ position: [0, 0, 18], fov: 60 }}>
         <Scene
           onSelectQuestion={(q) => { setSelectedQuestion(q); setShowCard(true) }}
-          filters={filters}
+          filters={{}}
           questions={questions}
           isSpinning={isSpinning}
           isZooming={isZooming}
@@ -104,51 +200,39 @@ function App() {
 
       {/* Top-right auth area */}
       <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-1.5">
-        {authLoading ? null : user ? (
-          <>
-            <div className="flex items-center gap-2">
-              {isAdmin && (
-                <button
-                  onClick={() => setShowAdmin(true)}
-                  className="px-3 py-1.5 bg-amber-600/80 hover:bg-amber-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
-                >
-                  ⚙ Admin
-                </button>
-              )}
-              <button
-                onClick={() => signOut()}
-                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg transition-colors cursor-pointer"
-              >
-                Sign Out
-              </button>
-            </div>
-            <span className="text-gray-500 text-xs flex items-center gap-1.5">
-              <span className="text-sm">{profile?.avatar_emoji || '✦'}</span>
-              {profile?.display_name || user.email}
-            </span>
-          </>
-        ) : (
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button
+              onClick={() => setShowAdmin(true)}
+              className="px-3 py-1.5 bg-amber-600/80 hover:bg-amber-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+            >
+              ⚙ Admin
+            </button>
+          )}
           <button
-            onClick={() => setShowAuth(true)}
-            className="px-4 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+            onClick={() => signOut()}
+            className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg transition-colors cursor-pointer"
           >
-            Sign In
+            Sign Out
           </button>
-        )}
+        </div>
+        <span className="text-gray-500 text-xs flex items-center gap-1.5">
+          <span className="text-sm">{profile?.avatar_emoji || '✦'}</span>
+          {profile?.display_name || user.email}
+        </span>
       </div>
 
-      {/* Bottom center — Random Play + Filter */}
-      {!showCard && !selectedQuestion && !showContribute && !showAuth && !showAdmin && !isSpinning && !isZooming && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-end gap-3">
-          <FilterPanel filters={filters} onFiltersChange={setFilters} />
+      {/* Bottom center — Play button */}
+      {!showCard && !selectedQuestion && !showContribute && !showAuth && !showAdmin && !showPlayFilters && !isSpinning && !isZooming && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
           <button
-            onClick={() => user ? startPlayMode() : setShowAuth(true)}
+            onClick={() => setShowPlayFilters(true)}
             className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-full shadow-lg shadow-purple-500/30 transition-colors cursor-pointer flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
-            {user ? 'Random Play' : 'Sign In to Play'}
+            Play
           </button>
         </div>
       )}
@@ -204,6 +288,14 @@ function App() {
 
       {showAdmin && (
         <AdminPanel onClose={() => { setShowAdmin(false); refetch() }} />
+      )}
+
+      {showPlayFilters && (
+        <PlayFilters
+          onStart={startPlayMode}
+          onClose={() => setShowPlayFilters(false)}
+          profile={profile}
+        />
       )}
     </div>
   )

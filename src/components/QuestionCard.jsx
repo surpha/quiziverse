@@ -61,6 +61,13 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
       <div className="pointer-events-auto relative bg-gray-900/95 border border-purple-500/40 rounded-2xl p-8 max-w-lg w-[90%] shadow-2xl shadow-purple-500/20 backdrop-blur-sm">
+        {/* Fallback notice */}
+        {question._fallback && (
+          <div className="mb-3 px-3 py-1.5 bg-amber-900/30 border border-amber-600/30 rounded-lg text-amber-300 text-xs">
+            No more filtered questions — here's one from the full pool
+          </div>
+        )}
+
         {/* Close button */}
         <button
           onClick={onClose}
