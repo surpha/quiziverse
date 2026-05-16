@@ -4,6 +4,8 @@ import { OrbitControls, Stars } from '@react-three/drei'
 import * as THREE from 'three'
 import StarNode from './StarNode'
 import { computePositions } from '../utils/coordinateMapper'
+import { getDominantDomain } from '../utils/domainConfig'
+import DOMAINS from '../utils/domainConfig'
 
 function matchesFilters(question, filters) {
   const entries = Object.entries(filters)
@@ -21,6 +23,81 @@ function OrbitShells() {
           <sphereGeometry args={[r, 24, 16]} />
           <meshBasicMaterial color="#ffffff" wireframe opacity={i % 3 === 0 ? 0.06 : 0.03} transparent />
         </mesh>
+      ))}
+    </>
+  )
+}
+
+/**
+ * Draw faint lines connecting questions that share the same primary domain,
+ * forming visual "constellations". Only connects nearest neighbors (max distance).
+ */
+function ConstellationLines({ questions, filters }) {
+  const lines = useMemo(() => {
+    // Group questions by primary domain
+    const groups = {}
+    for (const q of questions) {
+      if (!matchesFilters(q, filters)) continue
+      const dom = getDominantDomain(q.weights)
+      if (!groups[dom]) groups[dom] = []
+      groups[dom].push(q)
+    }
+
+    const result = []
+    const maxDist = 5.0 // Only connect nearby nodes
+
+    for (const [domain, members] of Object.entries(groups)) {
+      if (members.length < 2) continue
+      const color = DOMAINS[domain]?.color || '#a78bfa'
+
+      // Connect each node to its nearest neighbor in the same domain
+      for (let i = 0; i < members.length; i++) {
+        let bestDist = Infinity
+        let bestJ = -1
+        for (let j = 0; j < members.length; j++) {
+          if (i === j) continue
+          const dx = members[i].position[0] - members[j].position[0]
+          const dy = members[i].position[1] - members[j].position[1]
+          const dz = members[i].position[2] - members[j].position[2]
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
+          if (dist < bestDist && dist < maxDist) {
+            bestDist = dist
+            bestJ = j
+          }
+        }
+        if (bestJ !== -1) {
+          // Avoid duplicate lines (only add if i < bestJ)
+          const key = i < bestJ ? `${i}-${bestJ}` : `${bestJ}-${i}`
+          if (!result.find(l => l.key === `${domain}-${key}`)) {
+            result.push({
+              key: `${domain}-${key}`,
+              points: [
+                new THREE.Vector3(...members[i].position),
+                new THREE.Vector3(...members[bestJ].position),
+              ],
+              color,
+            })
+          }
+        }
+      }
+    }
+    return result
+  }, [questions, filters])
+
+  return (
+    <>
+      {lines.map(({ key, points, color }) => (
+        <line key={key}>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              count={2}
+              array={new Float32Array([...points[0].toArray(), ...points[1].toArray()])}
+              itemSize={3}
+            />
+          </bufferGeometry>
+          <lineBasicMaterial color={color} transparent opacity={0.12} />
+        </line>
       ))}
     </>
   )
@@ -86,6 +163,9 @@ function Scene({ onSelectQuestion, filters, questions, isSpinning, isZooming, zo
       <SpinningGlobe isSpinning={isSpinning}>
         {/* Difficulty orbit shells */}
         <OrbitShells />
+
+        {/* Constellation lines connecting same-domain questions */}
+        <ConstellationLines questions={positionedQuestions} filters={filters} />
 
         {/* Question nodes */}
         {positionedQuestions.map((q) => (
