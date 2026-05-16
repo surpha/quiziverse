@@ -78,12 +78,12 @@ function sphericalToCartesian(r, theta, phi) {
 }
 
 /**
- * Map difficulty (1-5) to radius.
- * Easy (1) → close to center, Hard (5) → outer orbit.
+ * Map difficulty (1-10) to radius.
+ * Easy (1) → close to center, Hard (10) → outer orbit.
  */
-function difficultyToRadius(difficulty, innerRadius = 2.0, outerRadius = 6.0) {
-  const d = Math.max(1, Math.min(5, difficulty || 3));
-  return innerRadius + ((d - 1) / 4) * (outerRadius - innerRadius);
+function difficultyToRadius(difficulty, innerRadius = 2.0, outerRadius = 10.0) {
+  const d = Math.max(1, Math.min(10, difficulty || 5));
+  return innerRadius + ((d - 1) / 9) * (outerRadius - innerRadius);
 }
 
 /**

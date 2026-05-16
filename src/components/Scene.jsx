@@ -13,13 +13,13 @@ function matchesFilters(question, filters) {
 
 /** Concentric wireframe spheres showing difficulty orbits */
 function OrbitShells() {
-  const radii = [2.0, 3.0, 4.0, 5.0, 6.0]
+  const radii = [2.0, 2.9, 3.8, 4.7, 5.6, 6.4, 7.3, 8.2, 9.1, 10.0]
   return (
     <>
-      {radii.map((r) => (
+      {radii.map((r, i) => (
         <mesh key={r}>
           <sphereGeometry args={[r, 24, 16]} />
-          <meshBasicMaterial color="#ffffff" wireframe opacity={0.04} transparent />
+          <meshBasicMaterial color="#ffffff" wireframe opacity={i % 3 === 0 ? 0.06 : 0.03} transparent />
         </mesh>
       ))}
     </>
@@ -105,7 +105,7 @@ function Scene({ onSelectQuestion, filters, questions, isSpinning, isZooming, zo
         enableZoom={!isSpinning && !isZooming}
         enableRotate={!isSpinning && !isZooming}
         minDistance={2}
-        maxDistance={35}
+        maxDistance={50}
       />
     </>
   )

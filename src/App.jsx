@@ -85,7 +85,7 @@ function App() {
 
   return (
     <div className="w-full h-full relative">
-      <Canvas camera={{ position: [0, 0, 12], fov: 60 }}>
+      <Canvas camera={{ position: [0, 0, 18], fov: 60 }}>
         <Scene
           onSelectQuestion={(q) => { setSelectedQuestion(q); setShowCard(true) }}
           filters={filters}

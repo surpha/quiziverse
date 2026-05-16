@@ -14,7 +14,7 @@ function ContributeForm({ onClose, onSubmitted }) {
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [imageMode, setImageMode] = useState('upload') // 'upload' | 'url'
-  const [difficulty, setDifficulty] = useState(3)
+  const [difficulty, setDifficulty] = useState(5)
   const [questionType, setQuestionType] = useState('straight')
   const [weights, setWeights] = useState(emptyWeights())
   const [submitting, setSubmitting] = useState(false)
@@ -168,12 +168,12 @@ function ContributeForm({ onClose, onSubmitted }) {
             {/* Difficulty & Type row */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-gray-300 text-sm block mb-1">Difficulty (1–5)</label>
+                <label className="text-gray-300 text-sm block mb-1">Difficulty (1–10)</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="range"
                     min="1"
-                    max="5"
+                    max="10"
                     value={difficulty}
                     onChange={(e) => setDifficulty(Number(e.target.value))}
                     className="flex-1 h-1 accent-purple-500"

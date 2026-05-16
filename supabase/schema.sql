@@ -7,7 +7,7 @@ create table if not exists questions (
   answer text not null,
   source text,
   image_url text,
-  difficulty smallint not null default 3 check (difficulty between 1 and 5),
+  difficulty smallint not null default 5 check (difficulty between 1 and 10),
   type text not null default 'straight',
   weights jsonb not null default '{}'::jsonb,
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),

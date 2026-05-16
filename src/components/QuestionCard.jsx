@@ -29,8 +29,8 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
           <span className="text-xs px-2 py-1 rounded-md bg-gray-800 text-gray-300 border border-gray-700">
             {typeInfo.icon} {typeInfo.label}
           </span>
-          <span className="text-xs text-gray-500 flex items-center gap-0.5" title={`Difficulty: ${difficultyDots}/5`}>
-            {Array.from({ length: 5 }, (_, i) => (
+          <span className="text-xs text-gray-500 flex items-center gap-0.5" title={`Difficulty: ${difficultyDots}/10`}>
+            {Array.from({ length: 10 }, (_, i) => (
               <span key={i} className={i < difficultyDots ? 'text-yellow-400' : 'text-gray-700'}>●</span>
             ))}
           </span>

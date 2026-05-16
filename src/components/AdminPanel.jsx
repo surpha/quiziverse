@@ -84,7 +84,7 @@ function AdminPanel({ onClose }) {
                     </span>
                   )}
                   <span className="bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
-                    Difficulty: {q.difficulty}/5
+                    Difficulty: {q.difficulty}/10
                   </span>
                   {q.source && (
                     <span className="bg-gray-700 text-gray-300 px-2 py-0.5 rounded truncate max-w-[200px]">
