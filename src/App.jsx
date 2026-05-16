@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
 import Scene from './components/Scene'
 import QuestionCard from './components/QuestionCard'
@@ -19,6 +19,8 @@ function App() {
   const [showContribute, setShowContribute] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
+  const [isSpinning, setIsSpinning] = useState(false)
+  const spinTimeoutRef = useRef(null)
 
   const pickRandom = useCallback(() => {
     if (questions.length === 0) return
@@ -28,16 +30,28 @@ function App() {
 
   const startPlayMode = () => {
     setIsPlayMode(true)
-    pickRandom()
+    setIsSpinning(true)
+    // Spin for 1.5s, then pick a question
+    spinTimeoutRef.current = setTimeout(() => {
+      setIsSpinning(false)
+      pickRandom()
+    }, 1500)
   }
 
   const handleNext = () => {
-    pickRandom()
+    setSelectedQuestion(null)
+    setIsSpinning(true)
+    spinTimeoutRef.current = setTimeout(() => {
+      setIsSpinning(false)
+      pickRandom()
+    }, 1500)
   }
 
   const handleClose = () => {
     setSelectedQuestion(null)
     setIsPlayMode(false)
+    setIsSpinning(false)
+    if (spinTimeoutRef.current) clearTimeout(spinTimeoutRef.current)
   }
 
   if (loading) {
@@ -51,11 +65,10 @@ function App() {
   return (
     <div className="w-full h-full relative">
       <Canvas camera={{ position: [0, 0, 12], fov: 60 }}>
-        <Scene onSelectQuestion={setSelectedQuestion} filters={filters} questions={questions} />
+        <Scene onSelectQuestion={setSelectedQuestion} filters={filters} questions={questions} isSpinning={isSpinning} />
       </Canvas>
 
       <Legend />
-      <FilterPanel filters={filters} onFiltersChange={setFilters} />
 
       {/* Data source indicator */}
       <div className="absolute bottom-4 left-4 z-10">
@@ -94,9 +107,10 @@ function App() {
         )}
       </div>
 
-      {/* Bottom center — Random Play */}
-      {!selectedQuestion && !showContribute && !showAuth && !showAdmin && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
+      {/* Bottom center — Random Play + Filter */}
+      {!selectedQuestion && !showContribute && !showAuth && !showAdmin && !isSpinning && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-end gap-3">
+          <FilterPanel filters={filters} onFiltersChange={setFilters} />
           <button
             onClick={startPlayMode}
             className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-full shadow-lg shadow-purple-500/30 transition-colors cursor-pointer flex items-center gap-2"
@@ -106,6 +120,13 @@ function App() {
             </svg>
             Random Play
           </button>
+        </div>
+      )}
+
+      {/* Spinning indicator */}
+      {isSpinning && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
+          <p className="text-purple-400 text-sm animate-pulse">Spinning the globe...</p>
         </div>
       )}
 

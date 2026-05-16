@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
-import { OrbitControls, Stars, Ring } from '@react-three/drei'
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { OrbitControls, Stars } from '@react-three/drei'
 import StarNode from './StarNode'
 import { computePositions } from '../utils/coordinateMapper'
 
@@ -11,7 +12,7 @@ function matchesFilters(question, filters) {
 
 /** Concentric wireframe spheres showing difficulty orbits */
 function OrbitShells() {
-  const radii = [2.0, 3.0, 4.0, 5.0, 6.0] // matches difficultyToRadius mapping
+  const radii = [2.0, 3.0, 4.0, 5.0, 6.0]
   return (
     <>
       {radii.map((r) => (
@@ -24,7 +25,21 @@ function OrbitShells() {
   )
 }
 
-function Scene({ onSelectQuestion, filters, questions }) {
+/** Wrapper group that spins when isSpinning is true */
+function SpinningGlobe({ children, isSpinning }) {
+  const groupRef = useRef()
+
+  useFrame((_, delta) => {
+    if (groupRef.current && isSpinning) {
+      groupRef.current.rotation.y += delta * 4.0 // fast spin
+      groupRef.current.rotation.x += delta * 1.5
+    }
+  })
+
+  return <group ref={groupRef}>{children}</group>
+}
+
+function Scene({ onSelectQuestion, filters, questions, isSpinning }) {
   const positionedQuestions = useMemo(() => computePositions(questions), [questions])
 
   return (
@@ -44,25 +59,28 @@ function Scene({ onSelectQuestion, filters, questions }) {
         speed={1}
       />
 
-      {/* Difficulty orbit shells */}
-      <OrbitShells />
+      {/* Globe content that spins during random play */}
+      <SpinningGlobe isSpinning={isSpinning}>
+        {/* Difficulty orbit shells */}
+        <OrbitShells />
 
-      {/* Question nodes */}
-      {positionedQuestions.map((q) => (
-        <StarNode
-          key={q.id}
-          question={q}
-          position={q.position}
-          onSelect={onSelectQuestion}
-          dimmed={!matchesFilters(q, filters)}
-        />
-      ))}
+        {/* Question nodes */}
+        {positionedQuestions.map((q) => (
+          <StarNode
+            key={q.id}
+            question={q}
+            position={q.position}
+            onSelect={onSelectQuestion}
+            dimmed={!matchesFilters(q, filters)}
+          />
+        ))}
+      </SpinningGlobe>
 
-      {/* Camera controls */}
+      {/* Camera controls — disabled during spin */}
       <OrbitControls
-        enablePan={true}
-        enableZoom={true}
-        enableRotate={true}
+        enablePan={!isSpinning}
+        enableZoom={!isSpinning}
+        enableRotate={!isSpinning}
         minDistance={2}
         maxDistance={35}
       />
