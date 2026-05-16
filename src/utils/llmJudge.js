@@ -19,8 +19,8 @@ Given a trivia/knowledge question and its answer, you must determine:
    - 7-8: Expert-level, requires deep study
    - 9-10: PhD/specialist level, very obscure
 
-2. **weights** (1-10 for each of 12 domains): How relevant is this question to each domain?
-   Domains: technology, history, geography, science, literature, arts, music, society, religion, popCulture, sports, lifestyle
+2. **weights** (1-10 for each of 13 domains): How relevant is this question to each domain?
+   Domains: technology, history, geography, science, literature, arts, music, society, religion, popCulture, sports, lifestyle, business
 
 Respond ONLY with valid JSON in this exact format:
 {
@@ -37,7 +37,8 @@ Respond ONLY with valid JSON in this exact format:
     "religion": <1-10>,
     "popCulture": <1-10>,
     "sports": <1-10>,
-    "lifestyle": <1-10>
+    "lifestyle": <1-10>,
+    "business": <1-10>
   },
   "reasoning": "<one sentence explaining your classification>"
 }`

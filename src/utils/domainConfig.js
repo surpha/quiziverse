@@ -16,6 +16,7 @@ const DOMAINS = {
   popCulture:  { label: 'Pop Culture & Entertainment', color: '#facc15', emissive: '#eab308' },
   sports:      { label: 'Sports & Games',          color: '#22c55e', emissive: '#16a34a' },
   lifestyle:   { label: 'Lifestyle & Practical',   color: '#fb923c', emissive: '#ea580c' },
+  business:    { label: 'Business & Economics',    color: '#14b8a6', emissive: '#0d9488' },
 };
 
 export const DOMAIN_KEYS = Object.keys(DOMAINS);
