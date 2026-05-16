@@ -10,7 +10,7 @@ create table if not exists questions (
   difficulty smallint not null default 5 check (difficulty between 1 and 10),
   type text not null default 'straight',
   weights jsonb not null default '{}'::jsonb,
-  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  status text not null default 'pending' check (status in ('pending', 'staging', 'approved', 'rejected')),
   submitted_by uuid references auth.users(id),
   reviewed_by uuid references auth.users(id),
   reviewed_at timestamptz,
@@ -44,16 +44,16 @@ create trigger on_auth_user_created
 alter table questions enable row level security;
 alter table profiles enable row level security;
 
--- Profiles: users can read their own profile, admins can read all
+-- Profiles: users can read and update their own profile
 create policy "Users can read own profile"
   on profiles for select
+  to authenticated
   using (auth.uid() = id);
 
-create policy "Admins can read all profiles"
-  on profiles for select
-  using (
-    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
-  );
+create policy "Users can update own profile"
+  on profiles for update
+  to authenticated
+  using (auth.uid() = id);
 
 -- Questions: everyone can see approved questions
 create policy "Public read approved questions"

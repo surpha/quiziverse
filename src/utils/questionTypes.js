@@ -6,6 +6,7 @@ const QUESTION_TYPES = {
   straight:   { label: 'Straight',        icon: '❓', description: 'Direct factual question' },
   visual:     { label: 'Visual ID',       icon: '🖼️', description: 'Identify from an image' },
   audio:      { label: 'Audio ID',        icon: '🎵', description: 'Identify from a sound' },
+  video:      { label: 'Video/Audio',     icon: '🎬', description: 'Watch or listen to media' },
   connect:    { label: 'Connect',         icon: '🔗', description: 'What connects these clues?' },
   fitb:       { label: 'Fill in Blank',   icon: '✏️', description: 'Complete the phrase' },
   longform:   { label: 'Long Form',       icon: '📜', description: 'Multi-part progressive clues' },
