@@ -24,7 +24,7 @@ export function useQuestions() {
           .order('id')
 
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Supabase query timed out')), 5000)
+          setTimeout(() => reject(new Error('Supabase query timed out')), 10000)
         )
 
         const { data, error: supaError } = await Promise.race([queryPromise, timeoutPromise])
