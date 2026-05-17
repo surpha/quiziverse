@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import DOMAINS, { DOMAIN_KEYS } from '../utils/domainConfig'
 import QUESTION_TYPES, { QUESTION_TYPE_KEYS } from '../utils/questionTypes'
-import { classifyQuestion, isLLMConfigured } from '../utils/llmJudge'
+import { classifyQuestion, generateHints, isLLMConfigured } from '../utils/llmJudge'
 
 const emptyWeights = () =>
   Object.fromEntries(DOMAIN_KEYS.map(d => [d, 1]))
@@ -18,11 +18,13 @@ function ContributeForm({ onClose, onSubmitted }) {
   const [imageMode, setImageMode] = useState('upload') // 'upload' | 'url'
   const [difficulty, setDifficulty] = useState(5)
   const [questionType, setQuestionType] = useState('straight')
+  const [hints, setHints] = useState(['', '', ''])
   const [weights, setWeights] = useState(emptyWeights())
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [aiClassifying, setAiClassifying] = useState(false)
+  const [aiHinting, setAiHinting] = useState(false)
 
   const handleWeightChange = (domain, value) => {
     setWeights(prev => ({ ...prev, [domain]: Number(value) }))
@@ -43,6 +45,22 @@ function ContributeForm({ onClose, onSubmitted }) {
       setError(`AI suggestion failed: ${err.message}`)
     }
     setAiClassifying(false)
+  }
+
+  const handleAiHints = async () => {
+    if (!question.trim() || !answer.trim()) {
+      setError('Fill in question and answer first for AI to generate hints.')
+      return
+    }
+    setAiHinting(true)
+    setError(null)
+    try {
+      const result = await generateHints(question, answer)
+      setHints(result.concat(['', '', '']).slice(0, 3))
+    } catch (err) {
+      setError(`AI hints failed: ${err.message}`)
+    }
+    setAiHinting(false)
   }
 
   const handleFileChange = (e) => {
@@ -118,6 +136,7 @@ function ContributeForm({ onClose, onSubmitted }) {
           media_url: mediaUrl.trim() || null,
           difficulty,
           type: questionType,
+          hints: hints.filter(h => h.trim()) .length > 0 ? hints.filter(h => h.trim()) : null,
           weights,
           status: 'pending',
         })
@@ -232,6 +251,36 @@ function ContributeForm({ onClose, onSubmitted }) {
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Hints (optional) */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-gray-300 text-sm">Hints (optional)</label>
+                {isLLMConfigured() && (
+                  <button
+                    type="button"
+                    onClick={handleAiHints}
+                    disabled={aiHinting || !question.trim() || !answer.trim()}
+                    className="px-2 py-0.5 bg-amber-600/80 hover:bg-amber-500 disabled:opacity-50 text-white text-xs rounded-md transition-colors cursor-pointer"
+                  >
+                    {aiHinting ? '🔄 Generating...' : '💡 AI Hints'}
+                  </button>
+                )}
+              </div>
+              <div className="space-y-2">
+                {[0, 1, 2].map(i => (
+                  <input
+                    key={i}
+                    type="text"
+                    value={hints[i]}
+                    onChange={(e) => setHints(prev => { const n = [...prev]; n[i] = e.target.value; return n })}
+                    className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
+                    placeholder={`Hint #${i + 1}`}
+                  />
+                ))}
+              </div>
+              <p className="text-gray-600 text-xs mt-1">Up to 3 progressive hints shown to players</p>
             </div>
 
             {/* Media URL (YouTube / audio) */}

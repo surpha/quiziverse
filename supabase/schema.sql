@@ -9,6 +9,7 @@ create table if not exists questions (
   image_url text,
   difficulty smallint not null default 5 check (difficulty between 1 and 10),
   type text not null default 'straight',
+  hints jsonb default null,
   weights jsonb not null default '{}'::jsonb,
   status text not null default 'pending' check (status in ('pending', 'staging', 'approved', 'rejected')),
   submitted_by uuid references auth.users(id),

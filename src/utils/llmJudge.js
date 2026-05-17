@@ -232,6 +232,43 @@ export async function verifyAnswer(question, correctAnswer, submittedAnswer) {
   }
 }
 
+const HINTS_PROMPT = `You are a hint generator for a trivia quiz called Quiziverse.
+
+Given a trivia question and its correct answer, generate exactly 3 progressive hints that help a player arrive at the answer WITHOUT giving it away directly.
+
+Rules for hints:
+- Hint 1: Vague/broad clue — narrows the domain or era without revealing the answer
+- Hint 2: More specific — gives a concrete detail or secondary fact that points toward the answer
+- Hint 3: Almost gives it away — very specific clue that makes the answer obvious to someone on the right track
+- NEVER include the answer itself (or obvious synonyms) in any hint
+- Keep each hint to 1-2 sentences max
+- Make hints interesting and educational, not just "it starts with the letter X"
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "hints": ["<hint 1>", "<hint 2>", "<hint 3>"]
+}`
+
+export async function generateHints(question, answer) {
+  const provider = import.meta.env.VITE_LLM_PROVIDER || 'groq'
+  const userMessage = `Question: ${question}\nAnswer: ${answer}`
+
+  const content = provider === 'gemini'
+    ? await callGeminiCustom(HINTS_PROMPT, userMessage)
+    : await callGroqCustom(HINTS_PROMPT, userMessage)
+
+  if (!content) throw new Error('Empty LLM response')
+
+  const jsonStr = content.replace(/```json?\n?/g, '').replace(/```/g, '').trim()
+  const result = JSON.parse(jsonStr)
+
+  if (!Array.isArray(result.hints) || result.hints.length === 0) {
+    throw new Error('Invalid hints format from LLM')
+  }
+
+  return result.hints.slice(0, 3)
+}
+
 const FACT_CHECK_PROMPT = `You are a fact-checking assistant. Given a trivia question and its submitted answer, you must:
 1. Independently determine what you believe the correct answer is.
 2. Compare it with the submitted answer.

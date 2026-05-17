@@ -53,11 +53,13 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
   const [userAnswer, setUserAnswer] = useState('')
   const [verdict, setVerdict] = useState(null) // { verdict, explanation }
   const [judging, setJudging] = useState(false)
+  const [hintsRevealed, setHintsRevealed] = useState(0)
 
   const handleNext = () => {
     setRevealed(false)
     setUserAnswer('')
     setVerdict(null)
+    setHintsRevealed(0)
     onNext()
   }
 
@@ -129,6 +131,27 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
 
         {/* Media embed (YouTube, audio, video) */}
         <MediaEmbed url={question.mediaUrl} />
+
+        {/* Hints section */}
+        {!revealed && question.hints && question.hints.length > 0 && (
+          <div className="mb-4 space-y-2">
+            {question.hints.slice(0, hintsRevealed).map((hint, i) => (
+              <div key={i} className="px-3 py-2 glass rounded-lg border border-amber-500/20 text-amber-200/80 text-sm">
+                <span className="text-amber-500/60 text-xs font-orbitron mr-2">Hint {i + 1}</span>
+                {hint}
+              </div>
+            ))}
+            {hintsRevealed < question.hints.length && (
+              <button
+                type="button"
+                onClick={() => setHintsRevealed(h => h + 1)}
+                className="text-amber-400/70 hover:text-amber-300 text-xs cursor-pointer transition-colors"
+              >
+                💡 Get hint ({hintsRevealed + 1}/{question.hints.length})
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Answer area */}
         {revealed ? (

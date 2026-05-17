@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import DOMAINS, { DOMAIN_KEYS } from '../utils/domainConfig'
 import QUESTION_TYPES from '../utils/questionTypes'
-import { classifyQuestion, factCheckAnswer, isLLMConfigured } from '../utils/llmJudge'
+import { classifyQuestion, factCheckAnswer, generateHints, isLLMConfigured } from '../utils/llmJudge'
 
 function AdminPanel({ onClose }) {
   const [tab, setTab] = useState('pending') // 'pending' | 'staging' | 'repository'
@@ -15,6 +15,7 @@ function AdminPanel({ onClose }) {
   const [aiResults, setAiResults] = useState({})
   const [verifying, setVerifying] = useState(null)
   const [verifyResults, setVerifyResults] = useState({})
+  const [hinting, setHinting] = useState(null)
   const [search, setSearch] = useState('')
 
   const fetchQuestions = useCallback(async () => {
@@ -50,6 +51,7 @@ function AdminPanel({ onClose }) {
       updatePayload.weights = editData.weights
       updatePayload.source = editData.source || null
       updatePayload.media_url = editData.media_url || null
+      updatePayload.hints = editData.hints || null
     } else if (status === 'staging' && editData) {
       updatePayload.question = editData.question
       updatePayload.answer = editData.answer
@@ -58,6 +60,7 @@ function AdminPanel({ onClose }) {
       updatePayload.weights = editData.weights
       updatePayload.source = editData.source || null
       updatePayload.media_url = editData.media_url || null
+      updatePayload.hints = editData.hints || null
     } else if (status === 'approved' && aiData) {
       updatePayload.difficulty = aiData.difficulty
       updatePayload.weights = aiData.weights
@@ -109,6 +112,21 @@ function AdminPanel({ onClose }) {
     setVerifying(null)
   }
 
+  const handleGenerateHints = async (q) => {
+    setHinting(q.id)
+    try {
+      const hints = await generateHints(q.question, q.answer)
+      // Update the question's hints in whichever list it belongs to
+      const updateHints = (list) => list.map(item => item.id === q.id ? { ...item, hints } : item)
+      setPending(updateHints)
+      setStaging(updateHints)
+      setApproved(updateHints)
+    } catch (err) {
+      alert(`AI Hints failed: ${err.message}`)
+    }
+    setHinting(null)
+  }
+
   const getDomainTags = (weights) => {
     if (!weights) return []
     return Object.entries(weights)
@@ -145,6 +163,7 @@ function AdminPanel({ onClose }) {
         weights: editData.weights,
         source: editData.source || null,
         media_url: editData.media_url || null,
+        hints: editData.hints || null,
       })
       .eq('id', id)
     if (error) {
@@ -220,9 +239,11 @@ function AdminPanel({ onClose }) {
               aiResults={aiResults}
               verifying={verifying}
               verifyResults={verifyResults}
+              hinting={hinting}
               onAction={handleAction}
               onClassify={handleClassify}
               onVerify={handleVerify}
+              onGenerateHints={handleGenerateHints}
               onDelete={handleDelete}
               getDomainTags={getDomainTags}
             />
@@ -234,9 +255,11 @@ function AdminPanel({ onClose }) {
               aiResults={aiResults}
               verifying={verifying}
               verifyResults={verifyResults}
+              hinting={hinting}
               onAction={handleAction}
               onClassify={handleClassify}
               onVerify={handleVerify}
+              onGenerateHints={handleGenerateHints}
               onDelete={handleDelete}
               getDomainTags={getDomainTags}
             />
@@ -247,6 +270,8 @@ function AdminPanel({ onClose }) {
               onSearchChange={setSearch}
               onDelete={handleDelete}
               onEdit={handleEditLive}
+              onGenerateHints={handleGenerateHints}
+              hinting={hinting}
               actionLoading={actionLoading}
               getDomainTags={getDomainTags}
             />
@@ -257,7 +282,7 @@ function AdminPanel({ onClose }) {
   )
 }
 
-function PendingTab({ pending, actionLoading, classifying, aiResults, verifying, verifyResults, onAction, onClassify, onVerify, onDelete, getDomainTags }) {
+function PendingTab({ pending, actionLoading, classifying, aiResults, verifying, verifyResults, hinting, onAction, onClassify, onVerify, onGenerateHints, onDelete, getDomainTags }) {
   const [expanded, setExpanded] = useState(null) // id of expanded question
   const [edits, setEdits] = useState({}) // { id: { question, answer, difficulty, type, weights } }
 
@@ -279,6 +304,7 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
           weights: q.weights || {},
           source: q.source || '',
           media_url: q.media_url || '',
+          hints: q.hints || ['', '', ''],
         }}))
       }
     }
@@ -530,6 +556,15 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
                   {verifying === q.id ? '🔄 Verifying...' : '🔍 AI Verify'}
                 </button>
               )}
+              {isLLMConfigured() && (
+                <button
+                  onClick={() => onGenerateHints(q)}
+                  disabled={hinting === q.id}
+                  className="px-3 py-1.5 bg-amber-600/80 hover:bg-amber-500 disabled:opacity-50 text-white text-xs rounded-lg transition-colors cursor-pointer"
+                >
+                  {hinting === q.id ? '🔄 Hinting...' : '💡 AI Hints'}
+                </button>
+              )}
               <button
                 onClick={() => handleApproveWithEdits(q.id)}
                 disabled={actionLoading === q.id}
@@ -566,7 +601,7 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
   )
 }
 
-function StagingTab({ staging, actionLoading, classifying, aiResults, verifying, verifyResults, onAction, onClassify, onVerify, onDelete, getDomainTags }) {
+function StagingTab({ staging, actionLoading, classifying, aiResults, verifying, verifyResults, hinting, onAction, onClassify, onVerify, onGenerateHints, onDelete, getDomainTags }) {
   const [expanded, setExpanded] = useState(null)
   const [edits, setEdits] = useState({})
 
@@ -588,6 +623,7 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
           weights: q.weights || {},
           source: q.source || '',
           media_url: q.media_url || '',
+          hints: q.hints || ['', '', ''],
         }}))
       }
     }
@@ -702,6 +738,26 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
                     className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                     placeholder="https://www.youtube.com/watch?v=..."
                   />
+                </div>
+                {/* Hints */}
+                <div>
+                  <label className="text-gray-400 text-xs block mb-1">Hints (optional)</label>
+                  <div className="space-y-1.5">
+                    {[0, 1, 2].map(i => (
+                      <input
+                        key={i}
+                        type="text"
+                        value={(edit.hints || ['', '', ''])[i] || ''}
+                        onChange={(e) => {
+                          const newHints = [...(edit.hints || ['', '', ''])]
+                          newHints[i] = e.target.value
+                          updateEdit(q.id, 'hints', newHints)
+                        }}
+                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
+                        placeholder={`Hint #${i + 1}`}
+                      />
+                    ))}
+                  </div>
                 </div>
                 {/* Domain weights */}
                 <div>
@@ -818,6 +874,15 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
                   {verifying === q.id ? '🔄 Verifying...' : '🔍 AI Verify'}
                 </button>
               )}
+              {isLLMConfigured() && (
+                <button
+                  onClick={() => onGenerateHints(q)}
+                  disabled={hinting === q.id}
+                  className="px-3 py-1.5 bg-amber-600/80 hover:bg-amber-500 disabled:opacity-50 text-white text-xs rounded-lg transition-colors cursor-pointer"
+                >
+                  {hinting === q.id ? '🔄 Hinting...' : '💡 AI Hints'}
+                </button>
+              )}
               <button
                 onClick={() => handleApproveWithEdits(q.id)}
                 disabled={actionLoading === q.id}
@@ -847,7 +912,7 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
   )
 }
 
-function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, actionLoading, getDomainTags }) {
+function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, onGenerateHints, hinting, actionLoading, getDomainTags }) {
   const [expanded, setExpanded] = useState(null)
   const [edits, setEdits] = useState({})
   const [editingId, setEditingId] = useState(null)
@@ -872,6 +937,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
         weights: q.weights || {},
         source: q.source || '',
         media_url: q.media_url || '',
+        hints: q.hints || ['', '', ''],
       }}))
     }
   }
@@ -998,6 +1064,15 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
                     >
                       ✎ Edit
                     </button>
+                    {isLLMConfigured() && (
+                      <button
+                        onClick={() => onGenerateHints(q)}
+                        disabled={hinting === q.id}
+                        className="mt-2 ml-2 px-3 py-1.5 bg-amber-600/80 hover:bg-amber-500 disabled:opacity-50 text-white text-xs rounded-lg transition-colors cursor-pointer"
+                      >
+                        {hinting === q.id ? '🔄 Hinting...' : '💡 AI Hints'}
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -1065,6 +1140,25 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
                         className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                         placeholder="https://www.youtube.com/watch?v=..."
                       />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 text-xs block mb-1">Hints (optional)</label>
+                      <div className="space-y-1.5">
+                        {[0, 1, 2].map(i => (
+                          <input
+                            key={i}
+                            type="text"
+                            value={(edit.hints || ['', '', ''])[i] || ''}
+                            onChange={(e) => {
+                              const newHints = [...(edit.hints || ['', '', ''])]
+                              newHints[i] = e.target.value
+                              updateEdit(q.id, 'hints', newHints)
+                            }}
+                            className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
+                            placeholder={`Hint #${i + 1}`}
+                          />
+                        ))}
+                      </div>
                     </div>
                     <div>
                       <label className="text-gray-400 text-xs block mb-2">Domain Weights</label>

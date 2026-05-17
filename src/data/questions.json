@@ -7,6 +7,7 @@
     "imageUrl": null,
     "difficulty": 3,
     "type": "straight",
+    "hints": ["It's a logarithmic function", "Think about what happens when you halve repeatedly"],
     "weights": {
       "technology": 9, "history": 2, "geography": 1, "science": 7,
       "literature": 1, "arts": 1, "music": 1, "society": 2,
@@ -21,6 +22,7 @@
     "imageUrl": null,
     "difficulty": 2,
     "type": "straight",
+    "hints": ["He was also a sculptor — think of David", "Italian Renaissance master, not Raphael or Leonardo", "His first name starts with M"],
     "weights": {
       "technology": 1, "history": 9, "geography": 3, "science": 1,
       "literature": 2, "arts": 10, "music": 1, "society": 3,
@@ -35,6 +37,7 @@
     "imageUrl": null,
     "difficulty": 4,
     "type": "straight",
+    "hints": ["It involves quantum mechanics", "The result changes depending on whether you observe it", "Think interference patterns"],
     "weights": {
       "technology": 4, "history": 5, "geography": 1, "science": 10,
       "literature": 1, "arts": 1, "music": 1, "society": 3,
@@ -49,6 +52,7 @@
     "imageUrl": null,
     "difficulty": 4,
     "type": "straight",
+    "hints": ["She was the daughter of a famous poet", "A programming language was later named after her"],
     "weights": {
       "technology": 10, "history": 8, "geography": 2, "science": 6,
       "literature": 3, "arts": 1, "music": 1, "society": 4,
@@ -77,6 +81,7 @@
     "imageUrl": null,
     "difficulty": 2,
     "type": "straight",
+    "hints": ["South American civilization", "They ruled a vast empire along the Andes"],
     "weights": {
       "technology": 3, "history": 10, "geography": 9, "science": 2,
       "literature": 1, "arts": 7, "music": 1, "society": 6,
@@ -105,6 +110,7 @@
     "imageUrl": null,
     "difficulty": 3,
     "type": "straight",
+    "hints": ["It's a minor key", "Think sharps — the note is between C and D"],
     "weights": {
       "technology": 1, "history": 5, "geography": 2, "science": 2,
       "literature": 2, "arts": 6, "music": 10, "society": 2,

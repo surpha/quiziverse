@@ -41,6 +41,7 @@ export function useQuestions() {
           mediaUrl: row.media_url || null,
           difficulty: row.difficulty || 5,
           type: row.type || 'straight',
+          hints: row.hints || null,
           weights: row.weights,
         }))
         setQuestions(transformed.length > 0 ? transformed : localQuestions)
