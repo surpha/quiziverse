@@ -88,10 +88,33 @@ function App() {
     setIsPlayMode(true)
     setShowCard(false)
     setIsSpinning(true)
-    // Spin for 1.5s, then zoom to question
+    // Spin for 1.5s, then zoom to first question
     spinTimeoutRef.current = setTimeout(() => {
       setIsSpinning(false)
-      pickRandomAndZoom()
+      // Compute filtered pool inline to avoid stale closure
+      const pool = positionedQuestions.filter(q => {
+        if (filterSettings.domains.length > 0) {
+          const dominantDomain = q.weights
+            ? Object.entries(q.weights).sort((a, b) => b[1] - a[1])[0]?.[0]
+            : null
+          if (!dominantDomain || !filterSettings.domains.includes(dominantDomain)) return false
+        }
+        const diff = q.difficulty || 5
+        if (diff < filterSettings.difficultyMin || diff > filterSettings.difficultyMax) return false
+        if (filterSettings.types.length > 0 && !filterSettings.types.includes(q.type)) return false
+        return true
+      })
+      const candidates = pool.length > 0 ? pool : positionedQuestions
+      const idx = Math.floor(Math.random() * candidates.length)
+      const chosen = candidates[idx]
+      shownIdsRef.current.add(chosen.id)
+      setSelectedQuestion({ ...chosen, _fallback: pool.length === 0 })
+      setZoomTarget(chosen.position)
+      setIsZooming(true)
+      spinTimeoutRef.current = setTimeout(() => {
+        setIsZooming(false)
+        setShowCard(true)
+      }, 1200)
     }, 1500)
   }
 
