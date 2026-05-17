@@ -139,16 +139,24 @@ export async function classifyQuestion(question, answer) {
   }
 }
 
-const VERIFY_PROMPT = `You are a fact-checking assistant. Given a trivia question and its submitted answer, you must:
-1. Independently determine what you believe the correct answer is.
-2. Compare it with the submitted answer.
-3. Determine if the submitted answer is correct, partially correct, or incorrect.
+const VERIFY_PROMPT = `You are an answer-checking assistant for a trivia quiz. You are given:
+- The question
+- The correct answer (verified by the quiz creator)
+- The user's submitted answer
+
+Your job is to determine if the user's submitted answer matches the correct answer. Be lenient with:
+- Spelling mistakes (e.g. "Einsten" = "Einstein")
+- Abbreviations (e.g. "US", "USA", "United States" are all the same)
+- Minor wording differences (e.g. "Mount Everest" = "Everest")
+- Extra words that don't change meaning
+- Case differences
+
+But mark as incorrect if the meaning is fundamentally different.
 
 Respond ONLY with valid JSON in this exact format:
 {
   "verdict": "correct" | "partially_correct" | "incorrect",
-  "aiAnswer": "<your independent answer>",
-  "explanation": "<brief explanation of why the submitted answer is correct/incorrect, and any nuances>"
+  "explanation": "<brief one-sentence explanation>"
 }`
 
 async function callGroqCustom(systemPrompt, userMessage) {
@@ -205,9 +213,9 @@ async function callGeminiCustom(systemPrompt, userMessage) {
   return data.candidates?.[0]?.content?.parts?.[0]?.text
 }
 
-export async function verifyAnswer(question, submittedAnswer) {
+export async function verifyAnswer(question, correctAnswer, submittedAnswer) {
   const provider = import.meta.env.VITE_LLM_PROVIDER || 'groq'
-  const userMessage = `Question: ${question}\nSubmitted Answer: ${submittedAnswer}`
+  const userMessage = `Question: ${question}\nCorrect Answer: ${correctAnswer}\nUser's Answer: ${submittedAnswer}`
 
   const content = provider === 'gemini'
     ? await callGeminiCustom(VERIFY_PROMPT, userMessage)
@@ -220,7 +228,6 @@ export async function verifyAnswer(question, submittedAnswer) {
 
   return {
     verdict: result.verdict || 'unknown',
-    aiAnswer: result.aiAnswer || '',
     explanation: result.explanation || '',
   }
 }
