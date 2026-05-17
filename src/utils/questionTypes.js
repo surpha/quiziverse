@@ -14,6 +14,7 @@ const QUESTION_TYPES = {
   truefalse:  { label: 'True / False',    icon: '✅', description: 'Verify the statement' },
   bounce:     { label: 'Quick Fire',      icon: '⚡', description: 'Rapid recall' },
   cryptic:    { label: 'Cryptic',         icon: '🧩', description: 'Wordplay or lateral thinking' },
+  badexplain: { label: 'Bad Explanation', icon: '🤪', description: 'Guess from a terrible description' },
 };
 
 export const QUESTION_TYPE_KEYS = Object.keys(QUESTION_TYPES);
