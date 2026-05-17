@@ -105,6 +105,16 @@ export function useAuth() {
     setProfile(null)
   }
 
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    })
+    if (error) throw error
+  }
+
   return {
     user,
     profile,
@@ -115,5 +125,6 @@ export function useAuth() {
     signIn,
     signUp,
     signOut,
+    signInWithGoogle,
   }
 }

@@ -15,7 +15,7 @@ import { computePositions } from './utils/coordinateMapper'
 
 function App() {
   const { questions, loading, source, refetch } = useQuestions()
-  const { user, profile, isAdmin, loading: authLoading, recoveryMode, setRecoveryMode, signIn, signUp, signOut } = useAuth()
+  const { user, profile, isAdmin, loading: authLoading, recoveryMode, setRecoveryMode, signIn, signUp, signOut, signInWithGoogle } = useAuth()
   const [selectedQuestion, setSelectedQuestion] = useState(null)
   const [isPlayMode, setIsPlayMode] = useState(false)
   const [showContribute, setShowContribute] = useState(false)
@@ -175,20 +175,12 @@ function App() {
             <p className="text-gray-400 text-sm max-w-md mt-2">
               Explore the interconnected universe of human thought
             </p>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowAuth(true)}
-                className="glass glow-border px-8 py-3 rounded-full font-orbitron text-cyan-300 uppercase tracking-widest text-xs hover:scale-105 transition-transform duration-300 hover:bg-cyan-900/20 cursor-pointer"
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => setShowAuth(true)}
-                className="glass px-8 py-3 rounded-full font-orbitron text-gray-300 uppercase tracking-widest text-xs hover:scale-105 transition-transform duration-300 hover:bg-white/5 cursor-pointer"
-              >
-                Sign Up
-              </button>
-            </div>
+            <button
+              onClick={() => setShowAuth(true)}
+              className="mt-6 glass glow-border px-10 py-3 rounded-full font-orbitron text-cyan-300 uppercase tracking-widest text-xs hover:scale-105 transition-transform duration-300 hover:bg-cyan-900/20 cursor-pointer"
+            >
+              Enter the Quiziverse
+            </button>
           </div>
         </div>
 
@@ -198,6 +190,7 @@ function App() {
             onAuth={() => setShowAuth(false)}
             signIn={signIn}
             signUp={signUp}
+            signInWithGoogle={signInWithGoogle}
           />
         )}
       </div>
@@ -312,6 +305,7 @@ function App() {
           onAuth={() => setShowAuth(false)}
           signIn={signIn}
           signUp={signUp}
+          signInWithGoogle={signInWithGoogle}
         />
       )}
 
