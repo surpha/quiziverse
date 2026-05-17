@@ -65,7 +65,7 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
     if (!userAnswer.trim()) return
     setJudging(true)
     try {
-      const result = await verifyAnswer(question.question, userAnswer.trim())
+      const result = await verifyAnswer(question.question, question.answer, userAnswer.trim())
       setVerdict(result)
       setRevealed(true)
     } catch (err) {
