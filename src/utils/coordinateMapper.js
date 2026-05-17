@@ -81,7 +81,7 @@ function sphericalToCartesian(r, theta, phi) {
  * Map difficulty (1-10) to radius.
  * Easy (1) → close to center, Hard (10) → outer orbit.
  */
-function difficultyToRadius(difficulty, innerRadius = 2.0, outerRadius = 10.0) {
+function difficultyToRadius(difficulty, innerRadius = 5.0, outerRadius = 22.0) {
   const d = Math.max(1, Math.min(10, difficulty || 5));
   return innerRadius + ((d - 1) / 9) * (outerRadius - innerRadius);
 }
@@ -90,7 +90,7 @@ function difficultyToRadius(difficulty, innerRadius = 2.0, outerRadius = 10.0) {
  * Force-directed relaxation on a sphere surface:
  * Pushes overlapping nodes apart while keeping them at their radius.
  */
-function relax(positions, iterations = 40, minDist = 0.6) {
+function relax(positions, iterations = 40, minDist = 2.0) {
   const pts = positions.map(p => [...p]);
   const n = pts.length;
 

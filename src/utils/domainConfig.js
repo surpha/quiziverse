@@ -4,19 +4,19 @@
  */
 
 const DOMAINS = {
-  technology:  { label: 'Technology & Innovation', color: '#06b6d4', emissive: '#0891b2' },
-  history:     { label: 'History & Civilization',  color: '#f59e0b', emissive: '#d97706' },
-  geography:   { label: 'Geography & Places',     color: '#10b981', emissive: '#059669' },
-  science:     { label: 'Science & Nature',       color: '#3b82f6', emissive: '#2563eb' },
-  literature:  { label: 'Literature & Language',   color: '#8b5cf6', emissive: '#7c3aed' },
-  arts:        { label: 'Arts & Architecture',     color: '#ec4899', emissive: '#db2777' },
-  music:       { label: 'Music & Performing Arts', color: '#f43f5e', emissive: '#e11d48' },
-  society:     { label: 'Society & Politics',      color: '#64748b', emissive: '#475569' },
-  religion:    { label: 'Religion & Mythology',    color: '#a855f7', emissive: '#9333ea' },
-  popCulture:  { label: 'Pop Culture & Entertainment', color: '#facc15', emissive: '#eab308' },
-  sports:      { label: 'Sports & Games',          color: '#22c55e', emissive: '#16a34a' },
-  lifestyle:   { label: 'Lifestyle & Practical',   color: '#fb923c', emissive: '#ea580c' },
-  business:    { label: 'Business & Economics',    color: '#14b8a6', emissive: '#0d9488' },
+  technology:  { label: 'Technology & Innovation', color: '#aaffff', emissive: '#0044ff' },
+  history:     { label: 'History & Civilization',  color: '#cc8800', emissive: '#ffcc44' },
+  geography:   { label: 'Geography & Places',     color: '#22cc44', emissive: '#88ff44' },
+  science:     { label: 'Science & Nature',       color: '#00e5ff', emissive: '#0055ff' },
+  literature:  { label: 'Literature & Language',   color: '#cc44aa', emissive: '#ffaadd' },
+  arts:        { label: 'Arts & Architecture',     color: '#ff4db8', emissive: '#ff9ed8' },
+  music:       { label: 'Music & Performing Arts', color: '#ff3355', emissive: '#ff88aa' },
+  society:     { label: 'Society & Politics',      color: '#ff7744', emissive: '#ffcc99' },
+  religion:    { label: 'Religion & Mythology',    color: '#9944ff', emissive: '#ddaaff' },
+  popCulture:  { label: 'Pop Culture & Entertainment', color: '#ffdd33', emissive: '#ff9955' },
+  sports:      { label: 'Sports & Games',          color: '#33dd66', emissive: '#99ff88' },
+  lifestyle:   { label: 'Lifestyle & Practical',   color: '#ff9955', emissive: '#ffd08a' },
+  business:    { label: 'Business & Economics',    color: '#ddcc00', emissive: '#44cc88' },
 };
 
 export const DOMAIN_KEYS = Object.keys(DOMAINS);

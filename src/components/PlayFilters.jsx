@@ -40,7 +40,7 @@ function PlayFilters({ onStart, onClose, profile }) {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
-      <div className="pointer-events-auto relative bg-gray-900/95 border border-purple-500/40 rounded-2xl p-6 max-w-lg w-[92%] shadow-2xl shadow-purple-500/20 backdrop-blur-sm max-h-[85vh] overflow-y-auto">
+      <div className="pointer-events-auto relative glass glow-border rounded-2xl p-6 max-w-lg w-[92%] max-h-[85vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl leading-none cursor-pointer"
@@ -48,7 +48,7 @@ function PlayFilters({ onStart, onClose, profile }) {
           &times;
         </button>
 
-        <h2 className="text-white text-lg font-semibold mb-1">Play Settings</h2>
+        <h2 className="text-white text-lg font-orbitron tracking-wider mb-1">Play Settings</h2>
         <p className="text-gray-400 text-sm mb-5">
           Customize your quiz, or start without filters for a random mix.
         </p>
@@ -56,7 +56,7 @@ function PlayFilters({ onStart, onClose, profile }) {
         {/* Domains */}
         <div className="mb-5">
           <label className="text-gray-300 text-sm font-medium block mb-2">
-            Domains {selectedDomains.length > 0 && <span className="text-purple-400">({selectedDomains.length})</span>}
+            Domains {selectedDomains.length > 0 && <span className="text-cyan-400">({selectedDomains.length})</span>}
           </label>
           <div className="flex flex-wrap gap-1.5">
             {DOMAIN_KEYS.map(domain => {
@@ -88,7 +88,7 @@ function PlayFilters({ onStart, onClose, profile }) {
         {/* Difficulty Range */}
         <div className="mb-5">
           <label className="text-gray-300 text-sm font-medium block mb-2">
-            Difficulty Range: <span className="text-purple-400">{difficultyRange[0]} – {difficultyRange[1]}</span>
+            Difficulty Range: <span className="text-cyan-400">{difficultyRange[0]} – {difficultyRange[1]}</span>
           </label>
           <div className="flex items-center gap-3">
             <span className="text-gray-500 text-xs w-6">Min</span>
@@ -101,7 +101,7 @@ function PlayFilters({ onStart, onClose, profile }) {
                 const val = Number(e.target.value)
                 setDifficultyRange([val, Math.max(val, difficultyRange[1])])
               }}
-              className="flex-1 h-1.5 accent-purple-500"
+              className="flex-1 h-1.5 accent-cyan-500"
             />
             <span className="text-gray-400 text-xs w-4 text-center">{difficultyRange[0]}</span>
           </div>
@@ -116,7 +116,7 @@ function PlayFilters({ onStart, onClose, profile }) {
                 const val = Number(e.target.value)
                 setDifficultyRange([Math.min(difficultyRange[0], val), val])
               }}
-              className="flex-1 h-1.5 accent-purple-500"
+              className="flex-1 h-1.5 accent-cyan-500"
             />
             <span className="text-gray-400 text-xs w-4 text-center">{difficultyRange[1]}</span>
           </div>
@@ -125,7 +125,7 @@ function PlayFilters({ onStart, onClose, profile }) {
         {/* Question Types */}
         <div className="mb-6">
           <label className="text-gray-300 text-sm font-medium block mb-2">
-            Question Types {selectedTypes.length > 0 && <span className="text-purple-400">({selectedTypes.length})</span>}
+            Question Types {selectedTypes.length > 0 && <span className="text-cyan-400">({selectedTypes.length})</span>}
           </label>
           <div className="flex flex-wrap gap-1.5">
             {QUESTION_TYPE_KEYS.map(type => {
@@ -138,7 +138,7 @@ function PlayFilters({ onStart, onClose, profile }) {
                   onClick={() => toggleType(type)}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                     active
-                      ? 'bg-purple-600/30 text-purple-300 ring-1 ring-purple-500/50'
+                      ? 'glass text-cyan-300 ring-1 ring-cyan-500/50'
                       : 'bg-gray-800/50 text-gray-400 hover:text-gray-200'
                   }`}
                 >
@@ -154,7 +154,7 @@ function PlayFilters({ onStart, onClose, profile }) {
         <div className="flex gap-3">
           <button
             onClick={handleStart}
-            className="flex-1 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+            className="flex-1 py-3 glass glow-border text-cyan-300 font-orbitron tracking-wider rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 hover:text-white"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />

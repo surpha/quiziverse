@@ -25,14 +25,14 @@ function FilterPanel({ filters, onFiltersChange }) {
       {/* Toggle button */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 px-5 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white text-sm font-medium rounded-full shadow-lg transition-colors cursor-pointer"
+        className="flex items-center gap-2 px-5 py-3 glass glow-border text-white text-sm font-orbitron tracking-wider rounded-full transition-colors cursor-pointer"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 010 2H4a1 1 0 01-1-1zm4 7a1 1 0 011-1h8a1 1 0 010 2H8a1 1 0 01-1-1zm2 7a1 1 0 011-1h4a1 1 0 010 2h-4a1 1 0 01-1-1z" />
         </svg>
         Filter
         {activeCount > 0 && (
-          <span className="bg-purple-500 text-white text-xs rounded-full px-2 py-0.5">
+          <span className="bg-cyan-500 text-white text-xs rounded-full px-2 py-0.5">
             {activeCount}
           </span>
         )}
@@ -40,7 +40,7 @@ function FilterPanel({ filters, onFiltersChange }) {
 
       {/* Expanded filter dropdown (pops up above the button) */}
       {expanded && (
-        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-72 bg-gray-900/95 border border-gray-700/50 rounded-xl backdrop-blur-sm p-4 space-y-2 max-h-[50vh] overflow-y-auto shadow-2xl">
+        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-72 glass glow-border rounded-xl p-4 space-y-2 max-h-[50vh] overflow-y-auto">
           <p className="text-gray-400 text-xs mb-2">
             Select domains to highlight. Adjust minimum weight (1–10).
           </p>
@@ -70,7 +70,7 @@ function FilterPanel({ filters, onFiltersChange }) {
                     max="10"
                     value={filters[domain]}
                     onChange={(e) => handleThresholdChange(domain, e.target.value)}
-                    className="w-16 h-1 accent-purple-500"
+                    className="w-16 h-1 accent-cyan-500"
                     title={`Min weight: ${filters[domain]}`}
                   />
                 )}

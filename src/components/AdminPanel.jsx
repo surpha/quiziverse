@@ -162,7 +162,7 @@ function AdminPanel({ onClose }) {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
-      <div className="pointer-events-auto relative bg-gray-900/95 border border-purple-500/40 rounded-2xl p-6 max-w-3xl w-[95%] max-h-[90vh] overflow-hidden shadow-2xl shadow-purple-500/20 backdrop-blur-sm flex flex-col">
+      <div className="pointer-events-auto relative glass glow-border rounded-2xl p-6 max-w-3xl w-[95%] max-h-[90vh] overflow-hidden flex flex-col">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl leading-none cursor-pointer z-10"
@@ -171,14 +171,14 @@ function AdminPanel({ onClose }) {
         </button>
 
         {/* Header */}
-        <h2 className="text-white text-lg font-semibold mb-3">Admin Panel</h2>
+        <h2 className="text-white text-lg font-orbitron tracking-wider mb-3">Admin Panel</h2>
 
         {/* Tabs */}
         <div className="flex gap-1 mb-4 border-b border-gray-700/50 pb-2">
           <button
             onClick={() => setTab('pending')}
             className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
-              tab === 'pending' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              tab === 'pending' ? 'glass text-cyan-300 ring-1 ring-cyan-500/50' : 'text-gray-400 hover:text-white hover:bg-gray-800'
             }`}
           >
             Pending
@@ -189,7 +189,7 @@ function AdminPanel({ onClose }) {
           <button
             onClick={() => setTab('staging')}
             className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
-              tab === 'staging' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              tab === 'staging' ? 'glass text-cyan-300 ring-1 ring-cyan-500/50' : 'text-gray-400 hover:text-white hover:bg-gray-800'
             }`}
           >
             Staging
@@ -200,7 +200,7 @@ function AdminPanel({ onClose }) {
           <button
             onClick={() => setTab('repository')}
             className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
-              tab === 'repository' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              tab === 'repository' ? 'glass text-cyan-300 ring-1 ring-cyan-500/50' : 'text-gray-400 hover:text-white hover:bg-gray-800'
             }`}
           >
             Live
@@ -211,7 +211,7 @@ function AdminPanel({ onClose }) {
         {/* Content */}
         <div className="overflow-y-auto flex-1">
           {loading ? (
-            <p className="text-purple-400 text-sm animate-pulse py-8 text-center">Loading...</p>
+            <p className="text-cyan-400 text-sm animate-pulse py-8 text-center">Loading...</p>
           ) : tab === 'pending' ? (
             <PendingTab
               pending={pending}
@@ -330,7 +330,7 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
               </div>
               <button
                 onClick={() => toggleExpand(q)}
-                className="text-gray-400 hover:text-purple-400 text-xs px-2 py-1 border border-gray-700 rounded-lg transition-colors cursor-pointer shrink-0"
+                className="text-gray-400 hover:text-cyan-400 text-xs px-2 py-1 border border-gray-700 rounded-lg transition-colors cursor-pointer shrink-0"
               >
                 {isExpanded ? '▲ Collapse' : '✎ Edit'}
               </button>
@@ -344,7 +344,7 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
                   <textarea
                     value={edit.question}
                     onChange={(e) => updateEdit(q.id, 'question', e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 resize-none"
+                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
                     rows={2}
                   />
                 </div>
@@ -353,7 +353,7 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
                   <textarea
                     value={edit.answer}
                     onChange={(e) => updateEdit(q.id, 'answer', e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 resize-none"
+                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
                     rows={2}
                   />
                 </div>
@@ -374,7 +374,7 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
                     <select
                       value={edit.type}
                       onChange={(e) => updateEdit(q.id, 'type', e.target.value)}
-                      className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+                      className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                     >
                       {Object.entries(QUESTION_TYPES).map(([key, { label, icon }]) => (
                         <option key={key} value={key}>{icon} {label}</option>
@@ -387,7 +387,7 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
                       type="text"
                       value={edit.source}
                       onChange={(e) => updateEdit(q.id, 'source', e.target.value)}
-                      className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500 w-40"
+                      className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50 w-40"
                     />
                   </div>
                 </div>
@@ -398,7 +398,7 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
                     type="url"
                     value={edit.media_url}
                     onChange={(e) => updateEdit(q.id, 'media_url', e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                     placeholder="https://www.youtube.com/watch?v=..."
                   />
                 </div>
@@ -525,7 +525,7 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
                 <button
                   onClick={() => onVerify(q)}
                   disabled={verifying === q.id}
-                  className="px-3 py-1.5 bg-purple-600/80 hover:bg-purple-500 disabled:opacity-50 text-white text-xs rounded-lg transition-colors cursor-pointer"
+                  className="px-3 py-1.5 glass glow-border disabled:opacity-50 text-white text-xs rounded-lg transition-colors cursor-pointer"
                 >
                   {verifying === q.id ? '🔄 Verifying...' : '🔍 AI Verify'}
                 </button>
@@ -631,7 +631,7 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
               </div>
               <button
                 onClick={() => toggleExpand(q)}
-                className="text-gray-400 hover:text-purple-400 text-xs px-2 py-1 border border-gray-700 rounded-lg transition-colors cursor-pointer shrink-0"
+                className="text-gray-400 hover:text-cyan-400 text-xs px-2 py-1 border border-gray-700 rounded-lg transition-colors cursor-pointer shrink-0"
               >
                 {isExpanded ? '▲ Collapse' : '✎ Edit'}
               </button>
@@ -645,7 +645,7 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
                   <textarea
                     value={edit.question}
                     onChange={(e) => updateEdit(q.id, 'question', e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 resize-none"
+                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
                     rows={2}
                   />
                 </div>
@@ -654,7 +654,7 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
                   <textarea
                     value={edit.answer}
                     onChange={(e) => updateEdit(q.id, 'answer', e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 resize-none"
+                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
                     rows={2}
                   />
                 </div>
@@ -675,7 +675,7 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
                     <select
                       value={edit.type}
                       onChange={(e) => updateEdit(q.id, 'type', e.target.value)}
-                      className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+                      className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                     >
                       {Object.entries(QUESTION_TYPES).map(([key, { label, icon }]) => (
                         <option key={key} value={key}>{icon} {label}</option>
@@ -688,7 +688,7 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
                       type="text"
                       value={edit.source}
                       onChange={(e) => updateEdit(q.id, 'source', e.target.value)}
-                      className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500 w-40"
+                      className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50 w-40"
                     />
                   </div>
                 </div>
@@ -699,7 +699,7 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
                     type="url"
                     value={edit.media_url}
                     onChange={(e) => updateEdit(q.id, 'media_url', e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                     placeholder="https://www.youtube.com/watch?v=..."
                   />
                 </div>
@@ -813,7 +813,7 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
                 <button
                   onClick={() => onVerify(q)}
                   disabled={verifying === q.id}
-                  className="px-3 py-1.5 bg-purple-600/80 hover:bg-purple-500 disabled:opacity-50 text-white text-xs rounded-lg transition-colors cursor-pointer"
+                  className="px-3 py-1.5 glass glow-border disabled:opacity-50 text-white text-xs rounded-lg transition-colors cursor-pointer"
                 >
                   {verifying === q.id ? '🔄 Verifying...' : '🔍 AI Verify'}
                 </button>
@@ -903,7 +903,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
           type="text"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+          className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
           placeholder="Search questions..."
         />
       </div>
@@ -936,7 +936,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => toggleExpand(q)}
-                      className="text-gray-500 hover:text-purple-400 text-xs cursor-pointer transition-colors"
+                      className="text-gray-500 hover:text-cyan-400 text-xs cursor-pointer transition-colors"
                     >
                       {isExpanded ? '▲' : '▼'}
                     </button>
@@ -975,7 +975,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
                       <p className="text-gray-500 text-xs">📖 Source: {q.source}</p>
                     )}
                     {q.media_url && (
-                      <p className="text-gray-500 text-xs">🎬 Media: <a href={q.media_url} target="_blank" rel="noopener noreferrer" className="text-purple-400 underline">{q.media_url}</a></p>
+                      <p className="text-gray-500 text-xs">🎬 Media: <a href={q.media_url} target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline">{q.media_url}</a></p>
                     )}
                     {q.image_url && (
                       <img src={q.image_url} alt="Question" className="rounded-lg max-h-24 object-cover border border-gray-700" />
@@ -994,7 +994,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
                     )}
                     <button
                       onClick={() => startEditing(q)}
-                      className="mt-2 px-3 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 text-xs rounded-lg transition-colors cursor-pointer"
+                      className="mt-2 px-3 py-1.5 glass glow-border text-cyan-300 text-xs rounded-lg transition-colors cursor-pointer"
                     >
                       ✎ Edit
                     </button>
@@ -1009,7 +1009,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
                       <textarea
                         value={edit.question}
                         onChange={(e) => updateEdit(q.id, 'question', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 resize-none"
+                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
                         rows={2}
                       />
                     </div>
@@ -1018,7 +1018,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
                       <textarea
                         value={edit.answer}
                         onChange={(e) => updateEdit(q.id, 'answer', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 resize-none"
+                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
                         rows={2}
                       />
                     </div>
@@ -1039,7 +1039,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
                         <select
                           value={edit.type}
                           onChange={(e) => updateEdit(q.id, 'type', e.target.value)}
-                          className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+                          className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                         >
                           {Object.entries(QUESTION_TYPES).map(([key, { label, icon }]) => (
                             <option key={key} value={key}>{icon} {label}</option>
@@ -1052,7 +1052,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
                           type="text"
                           value={edit.source}
                           onChange={(e) => updateEdit(q.id, 'source', e.target.value)}
-                          className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500 w-40"
+                          className="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50 w-40"
                         />
                       </div>
                     </div>
@@ -1062,7 +1062,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, ac
                         type="url"
                         value={edit.media_url}
                         onChange={(e) => updateEdit(q.id, 'media_url', e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-purple-500"
+                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                         placeholder="https://www.youtube.com/watch?v=..."
                       />
                     </div>

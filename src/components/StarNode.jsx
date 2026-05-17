@@ -3,61 +3,151 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getDomainColor } from '../utils/domainConfig'
 
-/**
- * Option B: All nodes are uniform glowing spheres — differentiated by
- * pulse animation, flicker, halo aura, and orbital rings.
- *
- * Star "classes" by question type:
- *   straight  — Steady star: gentle pulse, no extras
- *   visual    — Ringed planet: wide orbital ring
- *   audio     — Pulsar: fast flicker + halo
- *   video     — Giant star: wide ring + halo
- *   connect   — Binary system: double orbital rings
- *   cryptic   — Variable star: slow deep pulse + flicker + halo
- *   fitb      — Thin-ring star: thin orbital ring
- *   longform  — Nebula core: very slow pulse + large halo
- *   list      — Cluster star: thin ring, fast pulse
- *   truefalse — Steady ringed: thin ring, minimal pulse
- *   bounce    — Rapid pulsar: very fast flicker
- */
+// Vertex shader — passes UVs and normal for lighting
+const planetVertexShader = `
+  varying vec2 vUv;
+  varying vec3 vNormal;
+  varying vec3 vPosition;
+  void main() {
+    vUv = uv;
+    vNormal = normalize(normalMatrix * normal);
+    vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
 
-const STAR_CLASS = {
-  straight:  { pulseSpeed: 1.5,  pulseAmp: 0.04, ring: 'none',   flicker: false, halo: false },
-  visual:    { pulseSpeed: 1.0,  pulseAmp: 0.03, ring: 'wide',   flicker: false, halo: false },
-  audio:     { pulseSpeed: 3.0,  pulseAmp: 0.06, ring: 'none',   flicker: true,  halo: true  },
-  video:     { pulseSpeed: 1.2,  pulseAmp: 0.03, ring: 'wide',   flicker: false, halo: true  },
-  connect:   { pulseSpeed: 1.8,  pulseAmp: 0.04, ring: 'double', flicker: false, halo: false },
-  cryptic:   { pulseSpeed: 0.6,  pulseAmp: 0.08, ring: 'none',   flicker: true,  halo: true  },
-  fitb:      { pulseSpeed: 2.2,  pulseAmp: 0.05, ring: 'thin',   flicker: false, halo: false },
-  longform:  { pulseSpeed: 0.4,  pulseAmp: 0.06, ring: 'none',   flicker: false, halo: true  },
-  list:      { pulseSpeed: 2.5,  pulseAmp: 0.03, ring: 'thin',   flicker: false, halo: false },
-  truefalse: { pulseSpeed: 1.0,  pulseAmp: 0.02, ring: 'thin',   flicker: false, halo: false },
-  bounce:    { pulseSpeed: 5.0,  pulseAmp: 0.08, ring: 'none',   flicker: true,  halo: false },
+// Fragment shader — creates planet surface pattern
+const planetFragmentShader = `
+  uniform vec3 uColor1;
+  uniform vec3 uColor2;
+  uniform float uTime;
+  uniform float uHover;
+  uniform float uDimmed;
+  varying vec2 vUv;
+  varying vec3 vNormal;
+  varying vec3 vPosition;
+
+  // Simple noise
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+  }
+  float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+  }
+
+  void main() {
+    // Surface bands (latitude-like)
+    float bands = sin(vUv.y * 12.0 + uTime * 0.1) * 0.5 + 0.5;
+    // Noise detail
+    float n = noise(vUv * 8.0 + uTime * 0.05);
+    // Mix colors
+    float mix_factor = bands * 0.6 + n * 0.4;
+    vec3 surface = mix(uColor1, uColor2, mix_factor);
+
+    // Polar caps (brighter at poles)
+    float polar = smoothstep(0.85, 1.0, abs(vUv.y - 0.5) * 2.0);
+    surface = mix(surface, vec3(1.0), polar * 0.2);
+
+    // Soft wrap lighting
+    vec3 lightDir = normalize(vec3(1.0, 0.8, 0.5));
+    float diffuse = max(dot(vNormal, lightDir), 0.0) * 0.3 + 0.7;
+    surface *= diffuse;
+
+    // Emissive self-glow — slightly brighter
+    surface += uColor1 * 0.25;
+
+    // Clean rim glow (Fresnel)
+    vec3 viewDir = normalize(-vPosition);
+    float rim = 1.0 - max(dot(viewDir, vNormal), 0.0);
+    rim = pow(rim, 2.5);
+    surface += uColor1 * rim * 0.5;
+
+    // Hover brightness
+    surface += uHover * 0.4;
+
+    // Dimmed
+    surface = mix(surface, vec3(0.08), uDimmed);
+
+    gl_FragColor = vec4(surface, mix(1.0, 0.15, uDimmed));
+  }
+`
+
+// Create a radial gradient texture for the glow sprite
+function createGlowTexture() {
+  const size = 128
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
+  gradient.addColorStop(0, 'rgba(255,255,255,1.0)')
+  gradient.addColorStop(0.15, 'rgba(255,255,255,0.7)')
+  gradient.addColorStop(0.4, 'rgba(255,255,255,0.25)')
+  gradient.addColorStop(0.7, 'rgba(255,255,255,0.05)')
+  gradient.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, size, size)
+  const texture = new THREE.CanvasTexture(canvas)
+  return texture
+}
+
+const glowTexture = createGlowTexture()
+
+// Ring config by question type
+const RING_TYPE = {
+  straight: 'none',
+  visual: 'wide',
+  audio: 'none',
+  video: 'wide',
+  connect: 'double',
+  cryptic: 'none',
+  fitb: 'thin',
+  longform: 'none',
+  list: 'thin',
+  truefalse: 'thin',
+  bounce: 'none',
+  badexplain: 'none',
 }
 
 function StarNode({ question, position, onSelect, dimmed = false }) {
-  const coreRef = useRef()
-  const haloRef = useRef()
-  const ring1Ref = useRef()
+  const meshRef = useRef()
+  const atmoRef = useRef()
+  const ringRef = useRef()
   const ring2Ref = useRef()
   const [hovered, setHovered] = useState(false)
 
   const { color, emissive } = getDomainColor(question.weights)
-  const starClass = STAR_CLASS[question.type] || STAR_CLASS.straight
+
+  // Parse colors to vec3
+  const color1 = useMemo(() => new THREE.Color(color), [color])
+  const color2 = useMemo(() => new THREE.Color(emissive), [emissive])
 
   // Size by active domains
   const activeDomains = useMemo(() => {
     if (!question.weights) return 1
     return Object.values(question.weights).filter(w => w >= 4).length
   }, [question.weights])
-  const sizeScale = 0.7 + (activeDomains / 12) * 0.8
 
-  // Glow by difficulty
+  // Planet size scales with difficulty (harder = bigger planet)
   const difficulty = question.difficulty || 5
-  const baseGlow = 0.3 + (difficulty / 10) * 1.2
+  const sizeScale = 0.2 + (difficulty / 10) * 0.25
 
-  // Has media
+  // Difficulty drives flicker speed (hard questions shimmer/pulse faster)
+  const flickerSpeed = 1.0 + (difficulty / 10) * 4.0
+  const flickerAmp = 0.02 + (difficulty / 10) * 0.06
+
+  // Has media → ring
   const hasMedia = !!(question.mediaUrl || question.imageUrl)
+  const ringType = RING_TYPE[question.type] || 'none'
+  const showRing = !dimmed && (ringType !== 'none' || hasMedia)
+  const showDoubleRing = !dimmed && ringType === 'double'
 
   // Offset for unique timing per node
   const timeOffset = useMemo(
@@ -65,40 +155,45 @@ function StarNode({ question, position, onSelect, dimmed = false }) {
     [position]
   )
 
+  // Shader uniforms
+  const uniforms = useMemo(() => ({
+    uColor1: { value: color1 },
+    uColor2: { value: color2 },
+    uTime: { value: 0 },
+    uHover: { value: 0 },
+    uDimmed: { value: dimmed ? 1.0 : 0.0 },
+  }), [color1, color2, dimmed])
+
   useFrame((state) => {
     const t = state.clock.elapsedTime + timeOffset
 
-    if (coreRef.current) {
-      // Pulse scale
-      const base = dimmed ? 0.4 : sizeScale
-      const pulse = hovered
-        ? sizeScale * 1.35
-        : base + Math.sin(t * starClass.pulseSpeed) * starClass.pulseAmp
-      coreRef.current.scale.setScalar(pulse)
-
-      // Flicker: rapid emissive variation
-      if (starClass.flicker && !dimmed && coreRef.current.material) {
-        const flick = 0.7 + Math.sin(t * 12) * 0.15 + Math.sin(t * 19) * 0.1
-        coreRef.current.material.emissiveIntensity = baseGlow * flick
-      }
+    if (meshRef.current) {
+      // Slow self-rotation
+      meshRef.current.rotation.y += 0.003
+      // Update time uniform
+      meshRef.current.material.uniforms.uTime.value = t
+      // Lerp hover
+      const targetHover = hovered ? 1.0 : 0.0
+      meshRef.current.material.uniforms.uHover.value +=
+        (targetHover - meshRef.current.material.uniforms.uHover.value) * 0.1
+      // Flicker/pulse — harder questions flicker faster
+      const flicker = Math.sin(t * flickerSpeed) * flickerAmp
+        + Math.sin(t * flickerSpeed * 2.3) * (flickerAmp * 0.4)
+      const s = dimmed ? sizeScale * 0.5 : hovered ? sizeScale * 1.15 : sizeScale * (1.0 + flicker)
+      meshRef.current.scale.setScalar(s)
     }
 
-    // Halo breathe
-    if (haloRef.current) {
-      const haloScale = sizeScale * (1.8 + Math.sin(t * starClass.pulseSpeed * 0.5) * 0.15)
-      haloRef.current.scale.setScalar(haloScale)
-      haloRef.current.material.opacity =
-        0.08 + Math.sin(t * starClass.pulseSpeed * 0.7) * 0.04
+    if (atmoRef.current) {
+      const atmoFlicker = 1.0 + Math.sin(t * flickerSpeed * 0.7) * flickerAmp * 2
+      atmoRef.current.scale.setScalar(dimmed ? sizeScale * 0.55 : sizeScale * 1.1 * atmoFlicker)
     }
 
     // Ring rotation
-    if (ring1Ref.current) {
-      ring1Ref.current.rotation.z += 0.008
-      ring1Ref.current.rotation.x = Math.sin(t * 0.3) * 0.2
+    if (ringRef.current) {
+      ringRef.current.rotation.z += 0.005
     }
     if (ring2Ref.current) {
-      ring2Ref.current.rotation.z -= 0.006
-      ring2Ref.current.rotation.y = Math.sin(t * 0.4) * 0.3
+      ring2Ref.current.rotation.z -= 0.004
     }
   })
 
@@ -107,16 +202,14 @@ function StarNode({ question, position, onSelect, dimmed = false }) {
     if (!dimmed) onSelect(question)
   }
 
-  const showRing = !dimmed && (starClass.ring !== 'none' || hasMedia)
-  const showDoubleRing = !dimmed && starClass.ring === 'double'
-  const ringRadius = starClass.ring === 'wide' ? 0.28 : 0.24
-  const ringThickness = starClass.ring === 'wide' ? 0.02 : 0.012
+  const ringRadius = ringType === 'wide' ? 1.9 : 1.6
+  const ringThickness = ringType === 'wide' ? 0.08 : 0.05
 
   return (
     <group position={position}>
-      {/* Core sphere */}
+      {/* Planet core — shader material */}
       <mesh
-        ref={coreRef}
+        ref={meshRef}
         onClick={handleClick}
         onPointerOver={(e) => {
           e.stopPropagation()
@@ -130,59 +223,56 @@ function StarNode({ question, position, onSelect, dimmed = false }) {
           document.body.style.cursor = 'default'
         }}
       >
-        <sphereGeometry args={[0.15, 20, 20]} />
-        <meshStandardMaterial
-          color={hovered ? '#ffffff' : dimmed ? '#333333' : color}
-          emissive={hovered ? color : dimmed ? '#111111' : emissive}
-          emissiveIntensity={hovered ? 2.0 : dimmed ? 0.1 : baseGlow}
-          transparent={dimmed}
-          opacity={dimmed ? 0.2 : 1}
-          roughness={0.2}
-          metalness={0.1}
+        <sphereGeometry args={[1, 32, 32]} />
+        <shaderMaterial
+          vertexShader={planetVertexShader}
+          fragmentShader={planetFragmentShader}
+          uniforms={uniforms}
+          transparent
         />
       </mesh>
 
-      {/* Halo — soft outer glow for certain types */}
-      {starClass.halo && !dimmed && (
-        <mesh ref={haloRef}>
-          <sphereGeometry args={[0.15, 12, 12]} />
-          <meshStandardMaterial
+      {/* Atmosphere — backside glow */}
+      {!dimmed && (
+        <mesh ref={atmoRef}>
+          <sphereGeometry args={[1.3, 24, 24]} />
+          <meshBasicMaterial
             color={color}
-            emissive={emissive}
-            emissiveIntensity={baseGlow * 0.5}
             transparent
-            opacity={0.1}
+            opacity={0.18}
             side={THREE.BackSide}
             depthWrite={false}
           />
         </mesh>
       )}
 
-      {/* Primary orbital ring */}
-      {showRing && (
-        <mesh ref={ring1Ref} rotation={[1.2, 0.3, 0]}>
-          <torusGeometry args={[ringRadius * sizeScale, ringThickness, 8, 48]} />
-          <meshStandardMaterial
+      {/* Glow sprite — additive blending */}
+      {!dimmed && (
+        <sprite scale={[sizeScale * 5, sizeScale * 5, 1]}>
+          <spriteMaterial
+            map={glowTexture}
             color={color}
-            emissive={emissive}
-            emissiveIntensity={baseGlow * 0.6}
             transparent
-            opacity={0.4}
+            opacity={0.25}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
           />
+        </sprite>
+      )}
+
+      {/* Primary ring */}
+      {showRing && (
+        <mesh ref={ringRef} rotation={[1.3, 0.2, 0]} scale={[sizeScale, sizeScale, sizeScale]}>
+          <torusGeometry args={[ringRadius, ringThickness, 8, 64]} />
+          <meshBasicMaterial color={color} transparent opacity={0.4} />
         </mesh>
       )}
 
-      {/* Second ring for "double" type (connect questions) */}
+      {/* Second ring for "double" (connect questions) */}
       {showDoubleRing && (
-        <mesh ref={ring2Ref} rotation={[0.3, 1.5, 0.8]}>
-          <torusGeometry args={[0.22 * sizeScale, 0.01, 8, 48]} />
-          <meshStandardMaterial
-            color={color}
-            emissive={emissive}
-            emissiveIntensity={baseGlow * 0.4}
-            transparent
-            opacity={0.3}
-          />
+        <mesh ref={ring2Ref} rotation={[0.4, 1.4, 0.6]} scale={[sizeScale, sizeScale, sizeScale]}>
+          <torusGeometry args={[1.5, 0.04, 8, 64]} />
+          <meshBasicMaterial color={emissive} transparent opacity={0.35} />
         </mesh>
       )}
     </group>
