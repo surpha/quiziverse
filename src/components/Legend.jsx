@@ -5,7 +5,7 @@ function Legend() {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="absolute top-4 left-4 z-20">
+    <div data-tour="legend" className="absolute top-4 left-4 z-20">
       {/* Desktop: always visible */}
       <div className="hidden md:block glass glow-border rounded-xl p-4 max-h-[80vh] overflow-y-auto">
         <h3 className="text-white text-sm font-orbitron tracking-wider mb-3 uppercase">Domains</h3>
