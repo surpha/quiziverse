@@ -245,8 +245,9 @@ function App() {
       </div>
 
       {/* Bottom center — Play button */}
+      {/* Bottom center actions */}
       {!showCard && !selectedQuestion && !showContribute && !showAuth && !showAdmin && !showPlayFilters && !isSpinning && !isZooming && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
           <button
             onClick={() => setShowPlayFilters(true)}
             className="px-6 py-3 glass glow-border text-cyan-300 font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-cyan-900/20"
@@ -255,6 +256,15 @@ function App() {
               <path d="M8 5v14l11-7z" />
             </svg>
             Play
+          </button>
+          <button
+            onClick={() => setShowContribute(true)}
+            className="px-5 py-2.5 glass text-gray-300 hover:text-cyan-300 text-sm font-medium rounded-full shadow-lg transition-all cursor-pointer flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Contribute
           </button>
         </div>
       )}
@@ -265,21 +275,6 @@ function App() {
           <p className="text-cyan-400 text-sm animate-pulse font-orbitron tracking-wide">
             {isSpinning ? 'Spinning the globe...' : 'Zooming in...'}
           </p>
-        </div>
-      )}
-
-      {/* Bottom right — Contribute */}
-      {!selectedQuestion && !showContribute && !showAuth && !showAdmin && (
-        <div className="absolute bottom-6 right-6 z-20">
-          <button
-            onClick={() => setShowContribute(true)}
-            className="px-5 py-2.5 glass text-gray-300 hover:text-cyan-300 text-sm font-medium rounded-full shadow-lg transition-all cursor-pointer flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Contribute
-          </button>
         </div>
       )}
 
