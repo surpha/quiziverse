@@ -97,6 +97,14 @@ create policy "Admins can update questions"
     exists (select 1 from profiles where id = auth.uid() and role = 'admin')
   );
 
+-- Admins can delete questions
+create policy "Admins can delete questions"
+  on questions for delete
+  to authenticated
+  using (
+    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+  );
+
 -- Optional: Create a storage bucket for question images
 -- Go to Storage in your Supabase dashboard and create a bucket called "question-images"
 -- Set it to public so images can be displayed without auth
