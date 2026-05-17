@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import DOMAINS, { DOMAIN_KEYS } from '../utils/domainConfig'
 import QUESTION_TYPES from '../utils/questionTypes'
-import { classifyQuestion, verifyAnswer, isLLMConfigured } from '../utils/llmJudge'
+import { classifyQuestion, factCheckAnswer, isLLMConfigured } from '../utils/llmJudge'
 
 function AdminPanel({ onClose }) {
   const [tab, setTab] = useState('pending') // 'pending' | 'staging' | 'repository'
@@ -101,7 +101,7 @@ function AdminPanel({ onClose }) {
   const handleVerify = async (q) => {
     setVerifying(q.id)
     try {
-      const result = await verifyAnswer(q.question, q.answer)
+      const result = await factCheckAnswer(q.question, q.answer)
       setVerifyResults(prev => ({ ...prev, [q.id]: result }))
     } catch (err) {
       alert(`AI Verify failed: ${err.message}`)

@@ -231,3 +231,35 @@ export async function verifyAnswer(question, correctAnswer, submittedAnswer) {
     explanation: result.explanation || '',
   }
 }
+
+const FACT_CHECK_PROMPT = `You are a fact-checking assistant. Given a trivia question and its submitted answer, you must:
+1. Independently determine what you believe the correct answer is.
+2. Compare it with the submitted answer.
+3. Determine if the submitted answer is correct, partially correct, or incorrect.
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "verdict": "correct" | "partially_correct" | "incorrect",
+  "aiAnswer": "<your independent answer>",
+  "explanation": "<brief explanation of why the submitted answer is correct/incorrect, and any nuances>"
+}`
+
+export async function factCheckAnswer(question, answer) {
+  const provider = import.meta.env.VITE_LLM_PROVIDER || 'groq'
+  const userMessage = `Question: ${question}\nSubmitted Answer: ${answer}`
+
+  const content = provider === 'gemini'
+    ? await callGeminiCustom(FACT_CHECK_PROMPT, userMessage)
+    : await callGroqCustom(FACT_CHECK_PROMPT, userMessage)
+
+  if (!content) throw new Error('Empty LLM response')
+
+  const jsonStr = content.replace(/```json?\n?/g, '').replace(/```/g, '').trim()
+  const result = JSON.parse(jsonStr)
+
+  return {
+    verdict: result.verdict || 'unknown',
+    aiAnswer: result.aiAnswer || '',
+    explanation: result.explanation || '',
+  }
+}
