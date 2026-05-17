@@ -9,6 +9,7 @@ export function useAuth() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [recoveryMode, setRecoveryMode] = useState(false)
 
   const fetchProfile = useCallback(async (userId) => {
     if (!supabase || !userId) return null
@@ -52,12 +53,14 @@ export function useAuth() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setRecoveryMode(true)
+        }
         const currentUser = session?.user ?? null
         setUser(currentUser)
         if (currentUser) {
           const p = await fetchProfile(currentUser.id)
-          // Only update profile if fetch succeeded; preserve existing on timeout
           if (p) setProfile(p)
         } else {
           setProfile(null)
@@ -107,6 +110,8 @@ export function useAuth() {
     profile,
     loading,
     isAdmin: profile?.role === 'admin',
+    recoveryMode,
+    setRecoveryMode,
     signIn,
     signUp,
     signOut,

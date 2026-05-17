@@ -8,13 +8,14 @@ import AuthModal from './components/AuthModal'
 import AdminPanel from './components/AdminPanel'
 import LoadingScreen from './components/LoadingScreen'
 import PlayFilters from './components/PlayFilters'
+import ResetPassword from './components/ResetPassword'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { computePositions } from './utils/coordinateMapper'
 
 function App() {
   const { questions, loading, source, refetch } = useQuestions()
-  const { user, profile, isAdmin, loading: authLoading, signIn, signUp, signOut } = useAuth()
+  const { user, profile, isAdmin, loading: authLoading, recoveryMode, setRecoveryMode, signIn, signUp, signOut } = useAuth()
   const [selectedQuestion, setSelectedQuestion] = useState(null)
   const [isPlayMode, setIsPlayMode] = useState(false)
   const [showContribute, setShowContribute] = useState(false)
@@ -119,6 +120,11 @@ function App() {
 
   if (loading || authLoading) {
     return <LoadingScreen />
+  }
+
+  // Password recovery mode — show reset form
+  if (recoveryMode) {
+    return <ResetPassword onDone={() => setRecoveryMode(false)} />
   }
 
   // Not signed in — show landing page with spinning globe + sign-in

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import DOMAINS, { DOMAIN_KEYS } from '../utils/domainConfig'
+import { supabase } from '../lib/supabase'
 
 const AGE_RANGES = [
   { value: 'under18', label: 'Under 18' },
@@ -12,7 +13,7 @@ const AGE_RANGES = [
 const AVATARS = ['✦', '🌟', '🚀', '🧠', '🎯', '🔮', '⚡', '🌍', '🎨', '🎵', '📚', '🏆', '🦊', '🐉', '🌸', '💎']
 
 function AuthModal({ onClose, onAuth, signIn, signUp }) {
-  const [mode, setMode] = useState('signin')
+  const [mode, setMode] = useState('signin') // 'signin' | 'signup' | 'forgot'
   const [step, setStep] = useState(1) // 1: credentials, 2: persona
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,6 +25,7 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [signupSuccess, setSignupSuccess] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   const toggleDomain = (domain) => {
     setFavoriteDomains(prev =>
@@ -37,6 +39,15 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
     setLoading(true)
 
     try {
+      if (mode === 'forgot') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        })
+        if (error) throw error
+        setResetSent(true)
+        setLoading(false)
+        return
+      }
       if (mode === 'signin') {
         await signIn(email, password)
         onAuth()
@@ -75,14 +86,16 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
         </button>
 
         <h2 className="text-white text-lg font-semibold mb-1">
-          {mode === 'signin' ? 'Sign In' : step === 1 ? 'Create Account' : 'Your Profile'}
+          {mode === 'forgot' ? 'Reset Password' : mode === 'signin' ? 'Sign In' : step === 1 ? 'Create Account' : 'Your Profile'}
         </h2>
         <p className="text-gray-400 text-sm mb-4">
-          {mode === 'signin'
-            ? 'Sign in to play, contribute & explore'
-            : step === 1
-              ? 'Join the Quiziverse community'
-              : 'Tell us about yourself'}
+          {mode === 'forgot'
+            ? 'Enter your email to receive a reset link'
+            : mode === 'signin'
+              ? 'Sign in to play, contribute & explore'
+              : step === 1
+                ? 'Join the Quiziverse community'
+                : 'Tell us about yourself'}
         </p>
 
         {signupSuccess ? (
@@ -95,10 +108,36 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
               Go to Sign In
             </button>
           </div>
+        ) : resetSent ? (
+          <div className="text-center py-4">
+            <p className="text-green-400 text-sm">✓ Reset link sent! Check your email.</p>
+            <button
+              onClick={() => { setMode('signin'); setResetSent(false) }}
+              className="mt-3 text-purple-400 hover:text-purple-300 text-sm cursor-pointer"
+            >
+              Back to Sign In
+            </button>
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3">
+            {/* ── Forgot Password Mode ── */}
+            {mode === 'forgot' && (
+              <div>
+                <label className="text-gray-300 text-sm block mb-1">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                  placeholder="you@example.com"
+                  autoFocus
+                />
+              </div>
+            )}
+
             {/* ── STEP 1: Credentials ── */}
-            {(mode === 'signin' || step === 1) && (
+            {(mode === 'signin' || step === 1) && mode !== 'forgot' && (
               <>
                 <div>
                   <label className="text-gray-300 text-sm block mb-1">Email</label>
@@ -123,6 +162,15 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
                     placeholder="••••••••"
                   />
+                  {mode === 'signin' && (
+                    <button
+                      type="button"
+                      onClick={() => { setMode('forgot'); setError(null) }}
+                      className="text-purple-400 hover:text-purple-300 text-xs mt-1 cursor-pointer"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
                 </div>
               </>
             )}
@@ -250,15 +298,21 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
             >
               {loading
                 ? '...'
-                : mode === 'signin'
-                  ? 'Sign In'
-                  : step === 1
-                    ? 'Next →'
-                    : 'Create Account'}
+                : mode === 'forgot'
+                  ? 'Send Reset Link'
+                  : mode === 'signin'
+                    ? 'Sign In'
+                    : step === 1
+                      ? 'Next →'
+                      : 'Create Account'}
             </button>
 
             <p className="text-center text-gray-500 text-xs">
-              {mode === 'signin' ? (
+              {mode === 'forgot' ? (
+                <>Remember your password?{' '}
+                  <button type="button" onClick={() => { setMode('signin'); setError(null) }} className="text-purple-400 hover:text-purple-300 cursor-pointer">Sign In</button>
+                </>
+              ) : mode === 'signin' ? (
                 <>Don't have an account?{' '}
                   <button type="button" onClick={() => { setMode('signup'); setStep(1) }} className="text-purple-400 hover:text-purple-300 cursor-pointer">Sign Up</button>
                 </>
