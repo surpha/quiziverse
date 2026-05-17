@@ -27,6 +27,7 @@ function App() {
   const [isZooming, setIsZooming] = useState(false)
   const [zoomTarget, setZoomTarget] = useState(null)
   const [showCard, setShowCard] = useState(false)
+  const [showCredits, setShowCredits] = useState(false)
   const spinTimeoutRef = useRef(null)
 
   // Pre-compute positions so we know where each question lives
@@ -165,27 +166,25 @@ function App() {
           />
         </Canvas>
 
-        {/* Brand overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
-          <div className="pointer-events-auto flex flex-col items-center gap-6 px-6">
-            <h1 className="text-5xl font-bold tracking-wider">
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
-                QUIZIVERSE
-              </span>
+        {/* Cosmic brand overlay */}
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-[12vh] z-20 pointer-events-none">
+          <div className="pointer-events-auto flex flex-col items-center gap-5 px-6 text-center">
+            <h1 className="text-5xl md:text-7xl text-white font-orbitron tracking-wider glow-text leading-tight">
+              QUIZIVERSE
             </h1>
-            <p className="text-gray-400 text-sm tracking-wide text-center max-w-xs">
-              Explore the knowledge galaxy. Sign in to play, contribute, and discover.
+            <p className="text-gray-400 text-sm max-w-md mt-2">
+              Explore the interconnected universe of human thought
             </p>
-            <div className="flex gap-3 mt-2">
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowAuth(true)}
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-full shadow-lg shadow-purple-500/30 transition-colors cursor-pointer"
+                className="glass glow-border px-8 py-3 rounded-full font-orbitron text-cyan-300 uppercase tracking-widest text-xs hover:scale-105 transition-transform duration-300 hover:bg-cyan-900/20 cursor-pointer"
               >
                 Sign In
               </button>
               <button
                 onClick={() => setShowAuth(true)}
-                className="px-6 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white font-medium rounded-full shadow-lg transition-colors cursor-pointer"
+                className="glass px-8 py-3 rounded-full font-orbitron text-gray-300 uppercase tracking-widest text-xs hover:scale-105 transition-transform duration-300 hover:bg-white/5 cursor-pointer"
               >
                 Sign Up
               </button>
@@ -210,6 +209,7 @@ function App() {
       <Canvas camera={{ position: [0, 0, 18], fov: 60 }}>
         <Scene
           onSelectQuestion={(q) => { setSelectedQuestion(q); setShowCard(true) }}
+          onSunClick={() => setShowCredits(true)}
           filters={{}}
           questions={questions}
           isSpinning={isSpinning}
@@ -256,7 +256,7 @@ function App() {
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
           <button
             onClick={() => setShowPlayFilters(true)}
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-full shadow-lg shadow-purple-500/30 transition-colors cursor-pointer flex items-center gap-2"
+            className="px-6 py-3 glass glow-border text-cyan-300 font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-cyan-900/20"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
@@ -269,7 +269,7 @@ function App() {
       {/* Spinning indicator */}
       {(isSpinning || isZooming) && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-          <p className="text-purple-400 text-sm animate-pulse">
+          <p className="text-cyan-400 text-sm animate-pulse font-orbitron tracking-wide">
             {isSpinning ? 'Spinning the globe...' : 'Zooming in...'}
           </p>
         </div>
@@ -280,7 +280,7 @@ function App() {
         <div className="absolute bottom-6 right-6 z-20">
           <button
             onClick={() => setShowContribute(true)}
-            className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white text-sm font-medium rounded-full shadow-lg transition-colors cursor-pointer flex items-center gap-2"
+            className="px-5 py-2.5 glass text-gray-300 hover:text-cyan-300 text-sm font-medium rounded-full shadow-lg transition-all cursor-pointer flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -325,6 +325,52 @@ function App() {
           onClose={() => setShowPlayFilters(false)}
           profile={profile}
         />
+      )}
+
+      {/* Credits overlay — triggered by clicking the sun */}
+      {showCredits && (
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center"
+          onClick={() => setShowCredits(false)}
+        >
+          <div
+            className="glass glow-border rounded-2xl p-8 max-w-md w-[90%] text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowCredits(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white text-xl cursor-pointer"
+            >
+              ×
+            </button>
+
+            <div className="text-4xl mb-4">☀</div>
+
+            <h2 className="text-white text-xl font-orbitron tracking-wider mb-2">
+              QUIZIVERSE
+            </h2>
+
+            <p className="text-cyan-300/80 text-sm mb-6 italic">
+              Where every question is a star, and every answer lights the way.
+            </p>
+
+            <div className="w-12 h-px bg-cyan-500/30 mx-auto mb-6" />
+
+            <p className="text-gray-400 text-xs tracking-widest uppercase mb-2">
+              Crafted by curiosity
+            </p>
+            <p className="text-white text-lg font-orbitron tracking-wide mb-6">
+              SP & YB
+            </p>
+
+            <div className="w-12 h-px bg-cyan-500/30 mx-auto mb-6" />
+
+            <div className="space-y-2 text-gray-500 text-xs">
+              <p>Built with React · Three.js · Supabase</p>
+              <p>Powered by curiosity and late nights ✦</p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

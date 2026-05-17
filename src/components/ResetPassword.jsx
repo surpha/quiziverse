@@ -31,8 +31,8 @@ function ResetPassword({ onDone }) {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/70">
-      <div className="relative bg-gray-900/95 border border-purple-500/40 rounded-2xl p-6 max-w-md w-[90%] shadow-2xl shadow-purple-500/20 backdrop-blur-sm">
-        <h2 className="text-white text-lg font-semibold mb-1">Set New Password</h2>
+      <div className="relative glass glow-border rounded-2xl p-6 max-w-md w-[90%]">
+        <h2 className="text-white text-lg font-orbitron tracking-wider mb-1">Set New Password</h2>
         <p className="text-gray-400 text-sm mb-4">Choose a new password for your account</p>
 
         {success ? (
@@ -40,7 +40,7 @@ function ResetPassword({ onDone }) {
             <p className="text-green-400 text-sm">✓ Password updated successfully!</p>
             <button
               onClick={onDone}
-              className="mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg cursor-pointer"
+              className="mt-3 px-4 py-2 glass glow-border text-cyan-300 font-orbitron tracking-wider text-sm font-medium rounded-lg cursor-pointer hover:text-white"
             >
               Continue to Quiziverse
             </button>
@@ -55,7 +55,7 @@ function ResetPassword({ onDone }) {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                 placeholder="••••••••"
                 autoFocus
               />
@@ -68,7 +68,7 @@ function ResetPassword({ onDone }) {
                 onChange={(e) => setConfirm(e.target.value)}
                 required
                 minLength={6}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                 placeholder="••••••••"
               />
             </div>
@@ -76,7 +76,7 @@ function ResetPassword({ onDone }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-medium rounded-lg transition-colors cursor-pointer"
+              className="w-full py-2.5 glass glow-border text-cyan-300 font-orbitron tracking-wider disabled:opacity-50 font-medium rounded-lg transition-colors cursor-pointer hover:text-white"
             >
               {loading ? '...' : 'Update Password'}
             </button>

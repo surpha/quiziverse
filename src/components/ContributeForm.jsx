@@ -135,7 +135,7 @@ function ContributeForm({ onClose, onSubmitted }) {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none">
-      <div className="pointer-events-auto relative bg-gray-900/95 border border-purple-500/40 rounded-2xl p-6 max-w-xl w-[92%] max-h-[90vh] overflow-y-auto shadow-2xl shadow-purple-500/20 backdrop-blur-sm">
+      <div className="pointer-events-auto relative glass glow-border rounded-2xl p-6 max-w-xl w-[92%] max-h-[90vh] overflow-y-auto">
         {/* Close */}
         <button
           onClick={onClose}
@@ -144,7 +144,7 @@ function ContributeForm({ onClose, onSubmitted }) {
           &times;
         </button>
 
-        <h2 className="text-white text-lg font-semibold mb-4">Contribute a Question</h2>
+        <h2 className="text-white text-lg font-orbitron tracking-wider mb-4">Contribute a Question</h2>
 
         {success ? (
           <p className="text-green-400 text-center py-8">✓ Question submitted for review! An admin will approve it soon.</p>
@@ -157,7 +157,7 @@ function ContributeForm({ onClose, onSubmitted }) {
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 rows={2}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 resize-none"
+                className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
                 placeholder="Enter your question..."
               />
             </div>
@@ -169,7 +169,7 @@ function ContributeForm({ onClose, onSubmitted }) {
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 rows={2}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 resize-none"
+                className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
                 placeholder="Enter the answer..."
               />
             </div>
@@ -181,7 +181,7 @@ function ContributeForm({ onClose, onSubmitted }) {
                 type="text"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                 placeholder="YT channel, website URL, book, or attribution..."
               />
             </div>
@@ -209,7 +209,7 @@ function ContributeForm({ onClose, onSubmitted }) {
                     max="10"
                     value={difficulty}
                     onChange={(e) => setDifficulty(Number(e.target.value))}
-                    className="flex-1 h-1 accent-purple-500"
+                    className="flex-1 h-1 accent-cyan-500"
                   />
                   <span className="text-white text-sm font-medium w-5 text-center">{difficulty}</span>
                 </div>
@@ -223,7 +223,7 @@ function ContributeForm({ onClose, onSubmitted }) {
                 <select
                   value={questionType}
                   onChange={(e) => setQuestionType(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                  className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                 >
                   {QUESTION_TYPE_KEYS.map(key => (
                     <option key={key} value={key}>
@@ -241,7 +241,7 @@ function ContributeForm({ onClose, onSubmitted }) {
                 type="url"
                 value={mediaUrl}
                 onChange={(e) => setMediaUrl(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                 placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
               />
               <p className="text-gray-600 text-xs mt-1">Paste a YouTube, Vimeo, or direct audio/video link</p>
@@ -257,8 +257,8 @@ function ContributeForm({ onClose, onSubmitted }) {
                   onClick={() => setImageMode('upload')}
                   className={`px-3 py-1 text-xs rounded-md cursor-pointer transition-colors ${
                     imageMode === 'upload'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-white'
+                      ? 'glass text-cyan-300 ring-1 ring-cyan-500/50'
+                      : 'bg-gray-800/50 text-gray-400 hover:text-white'
                   }`}
                 >
                   Upload File
@@ -268,8 +268,8 @@ function ContributeForm({ onClose, onSubmitted }) {
                   onClick={() => setImageMode('url')}
                   className={`px-3 py-1 text-xs rounded-md cursor-pointer transition-colors ${
                     imageMode === 'url'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-white'
+                      ? 'glass text-cyan-300 ring-1 ring-cyan-500/50'
+                      : 'bg-gray-800/50 text-gray-400 hover:text-white'
                   }`}
                 >
                   Paste URL
@@ -298,7 +298,7 @@ function ContributeForm({ onClose, onSubmitted }) {
                     type="url"
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                     placeholder="https://i.imgur.com/example.jpg"
                   />
                   <p className="text-gray-600 text-xs mt-1">Works with Imgur, Unsplash, Wikimedia, or any direct image URL</p>
@@ -332,7 +332,7 @@ function ContributeForm({ onClose, onSubmitted }) {
                       max="10"
                       value={weights[domain]}
                       onChange={(e) => handleWeightChange(domain, e.target.value)}
-                      className="w-14 h-1 accent-purple-500"
+                      className="w-14 h-1 accent-cyan-500"
                     />
                     <span className="text-gray-500 text-xs w-4 text-center">{weights[domain]}</span>
                   </div>
@@ -349,7 +349,7 @@ function ContributeForm({ onClose, onSubmitted }) {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors cursor-pointer"
+              className="w-full py-3 glass glow-border text-cyan-300 font-orbitron tracking-wider disabled:opacity-50 disabled:cursor-not-allowed font-medium rounded-lg transition-colors cursor-pointer hover:text-white"
             >
               {submitting ? 'Submitting...' : 'Add to Quiziverse'}
             </button>

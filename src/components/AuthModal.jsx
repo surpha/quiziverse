@@ -77,7 +77,7 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
-      <div className="pointer-events-auto relative bg-gray-900/95 border border-purple-500/40 rounded-2xl p-6 max-w-md w-[90%] shadow-2xl shadow-purple-500/20 backdrop-blur-sm max-h-[85vh] overflow-y-auto">
+      <div className="pointer-events-auto relative glass glow-border rounded-2xl p-6 max-w-md w-[90%] max-h-[85vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl leading-none cursor-pointer"
@@ -85,7 +85,7 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
           &times;
         </button>
 
-        <h2 className="text-white text-lg font-semibold mb-1">
+        <h2 className="text-white text-lg font-orbitron tracking-wider mb-1">
           {mode === 'forgot' ? 'Reset Password' : mode === 'signin' ? 'Sign In' : step === 1 ? 'Create Account' : 'Your Profile'}
         </h2>
         <p className="text-gray-400 text-sm mb-4">
@@ -103,7 +103,7 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
             <p className="text-green-400 text-sm">✓ Account created! Check your email to confirm, then sign in.</p>
             <button
               onClick={() => { setMode('signin'); setSignupSuccess(false); setStep(1) }}
-              className="mt-3 text-purple-400 hover:text-purple-300 text-sm cursor-pointer"
+              className="mt-3 text-cyan-400 hover:text-cyan-300 text-sm cursor-pointer"
             >
               Go to Sign In
             </button>
@@ -113,7 +113,7 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
             <p className="text-green-400 text-sm">✓ Reset link sent! Check your email.</p>
             <button
               onClick={() => { setMode('signin'); setResetSent(false) }}
-              className="mt-3 text-purple-400 hover:text-purple-300 text-sm cursor-pointer"
+              className="mt-3 text-cyan-400 hover:text-cyan-300 text-sm cursor-pointer"
             >
               Back to Sign In
             </button>
@@ -129,7 +129,7 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                  className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                   placeholder="you@example.com"
                   autoFocus
                 />
@@ -146,7 +146,7 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                     placeholder="you@example.com"
                   />
                 </div>
@@ -159,14 +159,14 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                     placeholder="••••••••"
                   />
                   {mode === 'signin' && (
                     <button
                       type="button"
                       onClick={() => { setMode('forgot'); setError(null) }}
-                      className="text-purple-400 hover:text-purple-300 text-xs mt-1 cursor-pointer"
+                      className="text-cyan-400 hover:text-cyan-300 text-xs mt-1 cursor-pointer"
                     >
                       Forgot password?
                     </button>
@@ -189,8 +189,8 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
                         onClick={() => setAvatarEmoji(emoji)}
                         className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all cursor-pointer ${
                           avatarEmoji === emoji
-                            ? 'bg-purple-600 ring-2 ring-purple-400 scale-110'
-                            : 'bg-gray-800 hover:bg-gray-700'
+                            ? 'glass ring-2 ring-cyan-400 scale-110'
+                            : 'bg-gray-800/50 hover:bg-gray-700'
                         }`}
                       >
                         {emoji}
@@ -206,7 +206,7 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
                     type="text"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                     placeholder="How should we call you?"
                   />
                 </div>
@@ -220,7 +220,7 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-7 pr-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      className="w-full glass border border-gray-700/50 rounded-lg pl-7 pr-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                       placeholder="unique_handle"
                       maxLength={24}
                     />
@@ -238,8 +238,8 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
                         onClick={() => setAgeRange(value === ageRange ? '' : value)}
                         className={`px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
                           ageRange === value
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                            ? 'glass text-cyan-300 ring-1 ring-cyan-500/50'
+                            : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700'
                         }`}
                       >
                         {label}
@@ -294,7 +294,7 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-medium rounded-lg transition-colors cursor-pointer"
+              className="w-full py-2.5 glass glow-border text-cyan-300 font-orbitron tracking-wider disabled:opacity-50 font-medium rounded-lg transition-colors cursor-pointer hover:text-white"
             >
               {loading
                 ? '...'
@@ -310,15 +310,15 @@ function AuthModal({ onClose, onAuth, signIn, signUp }) {
             <p className="text-center text-gray-500 text-xs">
               {mode === 'forgot' ? (
                 <>Remember your password?{' '}
-                  <button type="button" onClick={() => { setMode('signin'); setError(null) }} className="text-purple-400 hover:text-purple-300 cursor-pointer">Sign In</button>
+                  <button type="button" onClick={() => { setMode('signin'); setError(null) }} className="text-cyan-400 hover:text-cyan-300 cursor-pointer">Sign In</button>
                 </>
               ) : mode === 'signin' ? (
                 <>Don't have an account?{' '}
-                  <button type="button" onClick={() => { setMode('signup'); setStep(1) }} className="text-purple-400 hover:text-purple-300 cursor-pointer">Sign Up</button>
+                  <button type="button" onClick={() => { setMode('signup'); setStep(1) }} className="text-cyan-400 hover:text-cyan-300 cursor-pointer">Sign Up</button>
                 </>
               ) : (
                 <>Already have an account?{' '}
-                  <button type="button" onClick={() => { setMode('signin'); setStep(1) }} className="text-purple-400 hover:text-purple-300 cursor-pointer">Sign In</button>
+                  <button type="button" onClick={() => { setMode('signin'); setStep(1) }} className="text-cyan-400 hover:text-cyan-300 cursor-pointer">Sign In</button>
                 </>
               )}
             </p>
