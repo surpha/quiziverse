@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import DOMAINS from '../utils/domainConfig'
 import QUESTION_TYPES from '../utils/questionTypes'
 import { verifyAnswer, isLLMConfigured } from '../utils/llmJudge'
@@ -48,18 +48,69 @@ function MediaEmbed({ url }) {
   )
 }
 
+function CosmicBlast() {
+  const [particles, setParticles] = useState([])
+
+  useEffect(() => {
+    const colors = ['#00e5ff', '#7c4dff', '#00e676', '#ffea00', '#ff4081', '#ffffff', '#40c4ff', '#b388ff']
+    const newParticles = Array.from({ length: 50 }, (_, i) => {
+      const angle = (Math.PI * 2 * i) / 50 + (Math.random() - 0.5) * 0.5
+      const speed = 100 + Math.random() * 250
+      const size = 3 + Math.random() * 6
+      return {
+        id: i,
+        x: Math.cos(angle) * speed,
+        y: Math.sin(angle) * speed,
+        size,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        delay: Math.random() * 0.2,
+        duration: 1.2 + Math.random() * 0.8,
+      }
+    })
+    setParticles(newParticles)
+  }, [])
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[100]">
+      {/* Central flash */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+        <div className="w-20 h-20 rounded-full bg-cyan-400/50 animate-cosmic-flash" />
+      </div>
+      {/* Particles */}
+      {particles.map(p => (
+        <div
+          key={p.id}
+          className="absolute top-1/2 left-1/2 rounded-full animate-cosmic-particle"
+          style={{
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+            boxShadow: `0 0 ${p.size * 3}px ${p.color}`,
+            '--tx': `${p.x}px`,
+            '--ty': `${p.y}px`,
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.duration}s`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 function QuestionCard({ question, onClose, onNext, isPlayMode }) {
   const [revealed, setRevealed] = useState(false)
   const [userAnswer, setUserAnswer] = useState('')
   const [verdict, setVerdict] = useState(null) // { verdict, explanation }
   const [judging, setJudging] = useState(false)
   const [hintsRevealed, setHintsRevealed] = useState(0)
+  const [showBlast, setShowBlast] = useState(false)
 
   const handleNext = () => {
     setRevealed(false)
     setUserAnswer('')
     setVerdict(null)
     setHintsRevealed(0)
+    setShowBlast(false)
     onNext()
   }
 
@@ -70,6 +121,7 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
       const result = await verifyAnswer(question.question, question.answer, userAnswer.trim())
       setVerdict(result)
       setRevealed(true)
+      if (result.verdict === 'correct') setShowBlast(true)
     } catch (err) {
       console.error('Answer verification failed:', err)
       // Fallback: just reveal the answer
@@ -86,6 +138,9 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
       <div className="pointer-events-auto relative glass glow-border rounded-2xl p-8 max-w-lg w-[90%] max-h-[85vh] overflow-y-auto shadow-2xl shadow-cyan-500/10">
+        {/* Cosmic blast on correct answer */}
+        {showBlast && <CosmicBlast />}
+
         {/* Fallback notice */}
         {question._fallback && (
           <div className="mb-3 px-3 py-1.5 bg-amber-900/20 border border-amber-500/20 rounded-lg text-amber-300 text-xs">
