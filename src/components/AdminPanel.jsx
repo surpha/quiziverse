@@ -121,8 +121,11 @@ function AdminPanel({ onClose }) {
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to permanently delete this question?')) return
     setActionLoading(id)
-    const { error } = await supabase.from('questions').delete().eq('id', id)
-    if (!error) {
+    const { error, count } = await supabase.from('questions').delete({ count: 'exact' }).eq('id', id)
+    if (error) {
+      console.error('Delete failed:', error.message)
+      alert(`Delete failed: ${error.message}`)
+    } else {
       setPending(prev => prev.filter(q => q.id !== id))
       setStaging(prev => prev.filter(q => q.id !== id))
       setApproved(prev => prev.filter(q => q.id !== id))
