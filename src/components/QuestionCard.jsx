@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import DOMAINS from '../utils/domainConfig'
 import QUESTION_TYPES from '../utils/questionTypes'
+import { verifyAnswer, isLLMConfigured } from '../utils/llmJudge'
 
 function getYouTubeId(url) {
   if (!url) return null
@@ -49,10 +50,32 @@ function MediaEmbed({ url }) {
 
 function QuestionCard({ question, onClose, onNext, isPlayMode }) {
   const [revealed, setRevealed] = useState(false)
+  const [userAnswer, setUserAnswer] = useState('')
+  const [verdict, setVerdict] = useState(null) // { verdict, explanation }
+  const [judging, setJudging] = useState(false)
 
   const handleNext = () => {
     setRevealed(false)
+    setUserAnswer('')
+    setVerdict(null)
     onNext()
+  }
+
+  const handleSubmitAnswer = async () => {
+    if (!userAnswer.trim()) return
+    setJudging(true)
+    try {
+      const result = await verifyAnswer(question.question, userAnswer.trim())
+      setVerdict(result)
+      setRevealed(true)
+    } catch (err) {
+      console.error('Answer verification failed:', err)
+      // Fallback: just reveal the answer
+      setVerdict({ verdict: 'error', explanation: 'Could not verify — check the answer yourself.' })
+      setRevealed(true)
+    } finally {
+      setJudging(false)
+    }
   }
 
   const typeInfo = QUESTION_TYPES[question.type] || QUESTION_TYPES.straight
@@ -109,10 +132,71 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
 
         {/* Answer area */}
         {revealed ? (
-          <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 mb-4">
-            <p className="text-purple-200 text-base leading-relaxed">
-              {question.answer}
-            </p>
+          <div className="space-y-3 mb-4">
+            {/* Verdict badge */}
+            {verdict && verdict.verdict !== 'error' && (
+              <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border ${
+                verdict.verdict === 'correct'
+                  ? 'bg-green-500/10 border-green-500/30'
+                  : verdict.verdict === 'partially_correct'
+                    ? 'bg-yellow-500/10 border-yellow-500/30'
+                    : 'bg-red-500/10 border-red-500/30'
+              }`}>
+                <span className="text-lg">
+                  {verdict.verdict === 'correct' ? '✓' : verdict.verdict === 'partially_correct' ? '◐' : '✗'}
+                </span>
+                <span className={`text-sm font-medium ${
+                  verdict.verdict === 'correct'
+                    ? 'text-green-400'
+                    : verdict.verdict === 'partially_correct'
+                      ? 'text-yellow-400'
+                      : 'text-red-400'
+                }`}>
+                  {verdict.verdict === 'correct' ? 'Correct!' : verdict.verdict === 'partially_correct' ? 'Partially Correct' : 'Incorrect'}
+                </span>
+              </div>
+            )}
+
+            {/* Explanation */}
+            {verdict?.explanation && (
+              <p className="text-gray-400 text-sm px-1">{verdict.explanation}</p>
+            )}
+
+            {/* Correct answer */}
+            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+              <p className="text-gray-500 text-xs mb-1">Correct Answer</p>
+              <p className="text-purple-200 text-base leading-relaxed">
+                {question.answer}
+              </p>
+            </div>
+          </div>
+        ) : isPlayMode && isLLMConfigured() ? (
+          <div className="mb-4">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={userAnswer}
+                onChange={(e) => setUserAnswer(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmitAnswer()}
+                placeholder="Type your answer..."
+                disabled={judging}
+                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 disabled:opacity-50"
+                autoFocus
+              />
+              <button
+                onClick={handleSubmitAnswer}
+                disabled={judging || !userAnswer.trim()}
+                className="px-4 py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:hover:bg-purple-600 text-white font-medium rounded-lg transition-colors cursor-pointer text-sm"
+              >
+                {judging ? '...' : 'Submit'}
+              </button>
+            </div>
+            <button
+              onClick={() => setRevealed(true)}
+              className="mt-2 text-gray-500 hover:text-gray-300 text-xs cursor-pointer"
+            >
+              Skip — just show the answer
+            </button>
           </div>
         ) : (
           <button
