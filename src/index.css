@@ -72,3 +72,41 @@
 .animate-loading-bar {
   animation: loading-bar 2s ease-in-out infinite;
 }
+
+/* Cosmic blast animations */
+@keyframes cosmic-particle {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes cosmic-flash {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  40% {
+    transform: scale(4);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(8);
+    opacity: 0;
+  }
+}
+
+.animate-cosmic-particle {
+  animation: cosmic-particle 1.5s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+}
+
+.animate-cosmic-flash {
+  animation: cosmic-flash 0.9s ease-out forwards;
+}
