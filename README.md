@@ -193,6 +193,66 @@ npm run dev
 
 ---
 
+## Contributing (Branch Workflow)
+
+We use a branch-based workflow. Never push directly to `main`.
+
+### 1. Create a feature branch
+
+```bash
+git checkout main
+git pull
+git checkout -b feat/your-feature-name
+```
+
+### 2. Make changes & commit
+
+```bash
+git add -A && git commit -m "feat: short description"
+```
+
+### 3. Test locally
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:5173` (or the next available port shown in terminal) and verify your changes.
+
+### 4. Push & open a Pull Request
+
+```bash
+git push origin feat/your-feature-name
+```
+
+Go to GitHub — click the "Compare & Pull Request" banner. Add a description of what you changed, then create the PR.
+
+### 5. Preview deployment
+
+Vercel automatically deploys every branch as a **Preview URL** (visible in the PR). Use this to test the production build before merging.
+
+### 6. Merge
+
+Once reviewed and approved, merge the PR on GitHub. Production (`main`) auto-deploys.
+
+### 7. Clean up locally
+
+```bash
+git checkout main
+git pull
+git branch -d feat/your-feature-name
+```
+
+### Summary
+
+| Environment | URL |
+|---|---|
+| Local dev | `npm run dev` → localhost |
+| Preview (per branch) | Auto-created by Vercel on push |
+| Production | `main` → [quiziverse-tau.vercel.app](https://quiziverse-tau.vercel.app/) |
+
+---
+
 ## Question Workflow
 
 ```
