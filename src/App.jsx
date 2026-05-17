@@ -14,6 +14,7 @@ import { WebGLErrorBoundary } from './components/universe/WebGLErrorBoundary'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { computePositions } from './utils/coordinateMapper'
+import { PLANETS_DATA } from './data/questions'
 
 const PLANET_DOMAIN_MAP = {
   science: ['science'],
@@ -25,6 +26,27 @@ const PLANET_DOMAIN_MAP = {
   literature: ['literature'],
   economics: ['business'],
   society: ['society'],
+  arts: ['arts'],
+  music: ['music'],
+  popculture: ['popCulture'],
+  sports: ['sports'],
+  lifestyle: ['lifestyle'],
+}
+
+const DOMAIN_TO_PLANET_ID = {
+  science: 'science',
+  geography: 'environment',
+  technology: 'technology',
+  religion: 'philosophy',
+  history: 'history',
+  literature: 'literature',
+  society: 'society',
+  business: 'economics',
+  arts: 'arts',
+  music: 'music',
+  popCulture: 'popculture',
+  sports: 'sports',
+  lifestyle: 'lifestyle',
 }
 
 function CosmicBrandOverlay({ onPrimaryAction, onSecondaryAction, signedIn }) {
@@ -91,6 +113,26 @@ function App() {
 
   // Pre-compute positions so we know where each question lives
   const positionedQuestions = useMemo(() => computePositions(questions), [questions])
+
+  const zoomTarget = useMemo(() => {
+    if (!selectedQuestion) return null
+
+    if (selectedQuestion._planetName) {
+      const byName = PLANETS_DATA.find(
+        (planet) => planet.name.toLowerCase() === String(selectedQuestion._planetName).toLowerCase()
+      )
+      if (byName) return byName.position
+    }
+
+    const dominantDomain = selectedQuestion.weights
+      ? Object.entries(selectedQuestion.weights).sort((a, b) => b[1] - a[1])[0]?.[0]
+      : null
+
+    const mappedPlanetId = dominantDomain ? DOMAIN_TO_PLANET_ID[dominantDomain] : null
+    if (!mappedPlanetId) return null
+
+    return PLANETS_DATA.find((planet) => planet.id === mappedPlanetId)?.position || null
+  }, [selectedQuestion])
 
   // Filter pool based on play filters
   const filteredPool = useMemo(() => {
@@ -228,6 +270,9 @@ function App() {
             cameraZ={cameraZ}
             onPlanetClick={() => setShowAuth(true)}
             onBeaconQuestion={() => {}}
+            isSpinning={false}
+            isZooming={false}
+            zoomTarget={null}
           />
         </WebGLErrorBoundary>
 
@@ -271,6 +316,9 @@ function App() {
           cameraZ={cameraZ}
           onPlanetClick={handlePlanetClick}
           onBeaconQuestion={handleBeaconQuestion}
+          isSpinning={isSpinning}
+          isZooming={isZooming}
+          zoomTarget={isZooming ? zoomTarget : null}
         />
       </WebGLErrorBoundary>
 

@@ -10,7 +10,14 @@ const CONNECTIONS = [
   ['technology', 'philosophy'],
   ['literature', 'philosophy'],
   ['history', 'society'],
-  ['economics', 'politics']
+  ['economics', 'politics'],
+  ['arts', 'literature'],
+  ['arts', 'music'],
+  ['music', 'popculture'],
+  ['popculture', 'technology'],
+  ['sports', 'society'],
+  ['sports', 'lifestyle'],
+  ['lifestyle', 'environment']
 ];
 
 function ConnectionPath({ startId, endId }: { startId: string, endId: string }) {
@@ -73,13 +80,13 @@ function ConnectionParticle({ curve, phase, color }: { curve: THREE.CatmullRomCu
   );
 }
 
-export function ConnectionPaths() {
+export function ConnectionPaths({ rotationSpeed = 0.015 }: { rotationSpeed?: number }) {
   const groupRef = useRef<THREE.Group>(null);
   
-  // Apply the same slow rotation as PlanetarySystem
+  // Keep connection paths aligned with planet rotation.
   useFrame((_, delta) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.015;
+      groupRef.current.rotation.y += delta * rotationSpeed;
     }
   });
 

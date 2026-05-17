@@ -93,7 +93,7 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
           </div>
 
           {/* Question */}
-          <Dialog.Title className="text-lg font-medium mb-4 leading-relaxed">
+          <Dialog.Title className="text-lg font-medium mb-4 leading-relaxed text-white">
             {question.question}
           </Dialog.Title>
 

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import React, { useRef, useState } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -14,19 +14,58 @@ interface UniverseCanvasProps {
   cameraZ: number;
   onPlanetClick: (planet: any) => void;
   onBeaconQuestion: (planet: any, question: string) => void;
+  isSpinning?: boolean;
+  isZooming?: boolean;
+  zoomTarget?: [number, number, number] | null;
 }
 
-function CameraController({ cameraZ }: { cameraZ: number }) {
+function CameraController({
+  cameraZ,
+  isZooming,
+  zoomTarget,
+}: {
+  cameraZ: number;
+  isZooming: boolean;
+  zoomTarget: [number, number, number] | null;
+}) {
   const { camera } = useThree();
-  useEffect(() => {
-    camera.position.z = cameraZ;
-  }, [cameraZ, camera]);
+  const desiredPositionRef = useRef(new THREE.Vector3(0, 0, cameraZ));
+  const lookAtRef = useRef(new THREE.Vector3(0, 0, 0));
+
+  useFrame((_, delta) => {
+    if (isZooming && zoomTarget) {
+      lookAtRef.current.set(zoomTarget[0], zoomTarget[1], zoomTarget[2]);
+      const viewDir = lookAtRef.current.clone().normalize();
+      desiredPositionRef.current.copy(lookAtRef.current).add(viewDir.multiplyScalar(7.5));
+
+      const lerpFactor = 1 - Math.exp(-delta * 5.5);
+      camera.position.lerp(desiredPositionRef.current, lerpFactor);
+      camera.lookAt(lookAtRef.current);
+      return;
+    }
+
+    desiredPositionRef.current.set(0, 0, cameraZ);
+    lookAtRef.current.set(0, 0, 0);
+
+    const lerpFactor = 1 - Math.exp(-delta * 3.5);
+    camera.position.lerp(desiredPositionRef.current, lerpFactor);
+    camera.lookAt(lookAtRef.current);
+  });
+
   return null;
 }
 
-export function UniverseCanvas({ cameraZ, onPlanetClick, onBeaconQuestion }: UniverseCanvasProps) {
+export function UniverseCanvas({
+  cameraZ,
+  onPlanetClick,
+  onBeaconQuestion,
+  isSpinning = false,
+  isZooming = false,
+  zoomTarget = null,
+}: UniverseCanvasProps) {
   const [activePlanetId, setActivePlanetId] = useState<string | null>(null);
   const [webglError, setWebglError] = useState(false);
+  const rotationSpeed = isZooming ? 0 : isSpinning ? 0.9 : 0.015;
 
   if (webglError) {
     return (
@@ -49,7 +88,7 @@ export function UniverseCanvas({ cameraZ, onPlanetClick, onBeaconQuestion }: Uni
       }}
       onError={() => setWebglError(true)}
     >
-      <CameraController cameraZ={cameraZ} />
+      <CameraController cameraZ={cameraZ} isZooming={isZooming} zoomTarget={zoomTarget} />
       
       <ambientLight intensity={0.08} />
       <pointLight position={[0, 0, 0]} intensity={2} color="#4488ff" distance={40} />
@@ -60,12 +99,13 @@ export function UniverseCanvas({ cameraZ, onPlanetClick, onBeaconQuestion }: Uni
       
       <PlanetarySystem 
         activePlanetId={activePlanetId}
+        rotationSpeed={rotationSpeed}
         onPlanetClick={(planet) => {
           setActivePlanetId(planet.id);
           onPlanetClick(planet);
         }}
       />
-      <ConnectionPaths />
+      <ConnectionPaths rotationSpeed={rotationSpeed} />
       
       <CenterBeacon 
         onQuestion={(planet, question) => {
@@ -77,10 +117,12 @@ export function UniverseCanvas({ cameraZ, onPlanetClick, onBeaconQuestion }: Uni
       <OrbitControls 
         enableDamping
         dampingFactor={0.05}
-        autoRotate
+        autoRotate={!isSpinning && !isZooming}
         autoRotateSpeed={0.12}
         minDistance={8}
         maxDistance={55}
+        enableRotate={!isZooming}
+        enableZoom={!isZooming}
         enablePan={false}
       />
     </Canvas>

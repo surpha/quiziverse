@@ -8,14 +8,15 @@ interface PlanetarySystemProps {
   activePlanetId: string | null;
   onPlanetClick: (planet: any) => void;
   onPlanetHover?: (planetId: string | null) => void;
+  rotationSpeed?: number;
 }
 
-export function PlanetarySystem({ activePlanetId, onPlanetClick, onPlanetHover }: PlanetarySystemProps) {
+export function PlanetarySystem({ activePlanetId, onPlanetClick, onPlanetHover, rotationSpeed = 0.015 }: PlanetarySystemProps) {
   const groupRef = useRef<THREE.Group>(null);
   
   useFrame((_, delta) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.015;
+      groupRef.current.rotation.y += delta * rotationSpeed;
     }
   });
 
