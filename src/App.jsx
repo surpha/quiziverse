@@ -9,6 +9,7 @@ import AdminPanel from './components/AdminPanel'
 import LoadingScreen from './components/LoadingScreen'
 import PlayFilters from './components/PlayFilters'
 import ResetPassword from './components/ResetPassword'
+import OnboardingTour from './components/OnboardingTour'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { computePositions } from './utils/coordinateMapper'
@@ -28,6 +29,7 @@ function App() {
   const [zoomTarget, setZoomTarget] = useState(null)
   const [showCard, setShowCard] = useState(false)
   const [showCredits, setShowCredits] = useState(false)
+  const [showTour, setShowTour] = useState(false)
   const spinTimeoutRef = useRef(null)
 
   // Pre-compute positions so we know where each question lives
@@ -223,6 +225,12 @@ function App() {
       {/* Top-right auth area */}
       <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-1.5">
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowTour(true)}
+            className="px-3 py-1.5 bg-cyan-800/60 hover:bg-cyan-700/80 text-cyan-300 text-xs rounded-lg transition-colors cursor-pointer"
+          >
+            ? How to Play
+          </button>
           {isAdmin && (
             <button
               onClick={() => setShowAdmin(true)}
@@ -249,6 +257,7 @@ function App() {
       {!showCard && !selectedQuestion && !showContribute && !showAuth && !showAdmin && !showPlayFilters && !isSpinning && !isZooming && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
           <button
+            data-tour="play"
             onClick={() => setShowPlayFilters(true)}
             className="px-6 py-3 glass glow-border text-cyan-300 font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-cyan-900/20"
           >
@@ -258,6 +267,7 @@ function App() {
             Play
           </button>
           <button
+            data-tour="contribute"
             onClick={() => setShowContribute(true)}
             className="px-5 py-2.5 glass text-gray-300 hover:text-cyan-300 text-sm font-medium rounded-full shadow-lg transition-all cursor-pointer flex items-center gap-2"
           >
@@ -306,6 +316,10 @@ function App() {
 
       {showAdmin && (
         <AdminPanel onClose={() => { setShowAdmin(false); refetch() }} />
+      )}
+
+      {showTour && (
+        <OnboardingTour onClose={() => setShowTour(false)} />
       )}
 
       {showPlayFilters && (
