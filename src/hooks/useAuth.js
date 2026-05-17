@@ -1,14 +1,29 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
+const LOCAL_DEMO_USER = {
+  id: 'local-demo-user',
+  email: 'local.demo@quiziverse.test',
+}
+
+const LOCAL_DEMO_PROFILE = {
+  id: LOCAL_DEMO_USER.id,
+  display_name: 'Local Explorer',
+  username: 'local_explorer',
+  avatar_emoji: '✦',
+  favorite_domains: [],
+  role: 'user',
+}
+
 /**
  * Hook for Supabase Auth with role support.
  * Returns { user, profile, loading, signIn, signUp, signOut, isAdmin }.
  */
 export function useAuth() {
-  const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const hasSupabase = isSupabaseConfigured()
+  const [user, setUser] = useState(() => hasSupabase ? null : LOCAL_DEMO_USER)
+  const [profile, setProfile] = useState(() => hasSupabase ? null : LOCAL_DEMO_PROFILE)
+  const [loading, setLoading] = useState(() => hasSupabase)
 
   const fetchProfile = useCallback(async (userId) => {
     if (!supabase || !userId) return null
@@ -34,10 +49,7 @@ export function useAuth() {
   }, [])
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
-      setLoading(false)
-      return
-    }
+    if (!hasSupabase) return
 
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -66,14 +78,24 @@ export function useAuth() {
     )
 
     return () => subscription.unsubscribe()
-  }, [fetchProfile])
+  }, [fetchProfile, hasSupabase])
 
   const signIn = async (email, password) => {
+    if (!hasSupabase) {
+      setUser({ ...LOCAL_DEMO_USER, email: email || LOCAL_DEMO_USER.email })
+      setProfile(LOCAL_DEMO_PROFILE)
+      return
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
   }
 
   const signUp = async (email, password, profileData = {}) => {
+    if (!hasSupabase) {
+      setUser({ ...LOCAL_DEMO_USER, email: email || LOCAL_DEMO_USER.email })
+      setProfile({ ...LOCAL_DEMO_PROFILE, ...profileData })
+      return
+    }
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
     // Update profile with extra fields after trigger creates the row

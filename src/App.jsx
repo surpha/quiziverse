@@ -1,16 +1,75 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
-import { Canvas } from '@react-three/fiber'
-import Scene from './components/Scene'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Database, Folder, LogOut, Plus, Play, Shield, UserCircle } from 'lucide-react'
 import QuestionCard from './components/QuestionCard'
-import Legend from './components/Legend'
 import ContributeForm from './components/ContributeForm'
 import AuthModal from './components/AuthModal'
 import AdminPanel from './components/AdminPanel'
 import LoadingScreen from './components/LoadingScreen'
 import PlayFilters from './components/PlayFilters'
+import { CursorGlow } from './components/ui/CursorGlow'
+import { PlanetInfoOverlay } from './components/ui/PlanetInfoOverlay'
+import { UniverseCanvas } from './components/universe/UniverseCanvas'
+import { WebGLErrorBoundary } from './components/universe/WebGLErrorBoundary'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { computePositions } from './utils/coordinateMapper'
+
+const PLANET_DOMAIN_MAP = {
+  science: ['science'],
+  politics: ['society'],
+  environment: ['science', 'geography'],
+  technology: ['technology'],
+  philosophy: ['religion', 'literature', 'society'],
+  history: ['history'],
+  literature: ['literature'],
+  economics: ['business'],
+  society: ['society'],
+}
+
+function CosmicBrandOverlay({ onPrimaryAction, onSecondaryAction, signedIn }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -16 }}
+      transition={{ duration: 0.7, ease: 'easeOut' }}
+      className="absolute inset-x-0 bottom-[12vh] z-20 flex justify-center px-6 pointer-events-none"
+    >
+      <div className="pointer-events-auto flex max-w-2xl flex-col items-center text-center">
+        <p className="font-orbitron text-xs uppercase tracking-[0.4em] text-cyan-300/80 mb-4">
+          Quiziverse
+        </p>
+        <h1 className="text-4xl md:text-6xl text-white font-light glow-text leading-tight">
+          Knowledge is not divided.
+        </h1>
+        <p className="mt-3 text-2xl md:text-4xl text-cyan-300 font-light glow-text">
+          Every idea connects.
+        </p>
+        <p className="mt-6 max-w-md text-sm md:text-base text-slate-300/75">
+          Explore the questions galaxy without changing the questions repo beneath it.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <button
+            onClick={onPrimaryAction}
+            className="glass glow-border inline-flex items-center gap-2 rounded-full px-6 py-3 font-orbitron text-xs uppercase tracking-widest text-cyan-200 transition-transform duration-300 hover:scale-105 hover:bg-cyan-900/20"
+          >
+            <Play className="h-4 w-4" />
+            {signedIn ? 'Enter Cosmos' : 'Sign In'}
+          </button>
+          {!signedIn && (
+            <button
+              onClick={onSecondaryAction}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 font-orbitron text-xs uppercase tracking-widest text-slate-200 transition-colors hover:bg-white/10"
+            >
+              Create Account
+            </button>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  )
+}
 
 function App() {
   const { questions, loading, source, refetch } = useQuestions()
@@ -24,8 +83,10 @@ function App() {
   const [playFilters, setPlayFilters] = useState(null) // { domains, difficultyMin, difficultyMax, types }
   const [isSpinning, setIsSpinning] = useState(false)
   const [isZooming, setIsZooming] = useState(false)
-  const [zoomTarget, setZoomTarget] = useState(null)
   const [showCard, setShowCard] = useState(false)
+  const [showHero, setShowHero] = useState(false)
+  const [activePlanet, setActivePlanet] = useState(null)
+  const [cameraZ] = useState(34)
   const spinTimeoutRef = useRef(null)
 
   // Pre-compute positions so we know where each question lives
@@ -54,35 +115,73 @@ function App() {
   // Track which questions have been shown this session
   const shownIdsRef = useRef(new Set())
 
-  const pickRandomAndZoom = useCallback(() => {
-    // Try filtered pool first, excluding already-shown
-    let pool = filteredPool.filter(q => !shownIdsRef.current.has(q.id))
+  const chooseQuestionFromPool = useCallback((pool, fallbackPool = positionedQuestions) => {
+    let available = pool.filter(q => !shownIdsRef.current.has(q.id))
     let usedFallback = false
-    if (pool.length === 0 && playFilters) {
-      // Fallback: pick from all questions
-      pool = positionedQuestions.filter(q => !shownIdsRef.current.has(q.id))
+
+    if (available.length === 0) {
+      available = fallbackPool.filter(q => !shownIdsRef.current.has(q.id))
       usedFallback = true
     }
-    if (pool.length === 0) {
-      // All questions shown — reset
+
+    if (available.length === 0) {
       shownIdsRef.current.clear()
-      pool = filteredPool.length > 0 ? filteredPool : positionedQuestions
+      available = pool.length > 0 ? pool : fallbackPool
     }
-    const idx = Math.floor(Math.random() * pool.length)
-    const chosen = pool[idx]
+
+    const chosen = available[Math.floor(Math.random() * available.length)]
+    if (!chosen) return null
     shownIdsRef.current.add(chosen.id)
-    setSelectedQuestion({ ...chosen, _fallback: usedFallback })
-    setZoomTarget(chosen.position)
+    return { ...chosen, _fallback: usedFallback }
+  }, [positionedQuestions])
+
+  const pickRandomAndZoom = useCallback(() => {
+    const chosen = chooseQuestionFromPool(filteredPool, positionedQuestions)
+    if (!chosen) return
+    setSelectedQuestion(chosen)
     setIsZooming(true)
     // Zoom takes ~1s, then show card
     spinTimeoutRef.current = setTimeout(() => {
       setIsZooming(false)
       setShowCard(true)
     }, 1200)
-  }, [filteredPool, positionedQuestions, playFilters])
+  }, [chooseQuestionFromPool, filteredPool, positionedQuestions])
+
+  const startPlanetQuiz = useCallback((planet) => {
+    const domains = PLANET_DOMAIN_MAP[planet.id] || []
+    const planetPool = positionedQuestions.filter((q) => {
+      if (!q.weights) return false
+      return domains.some((domain) => (q.weights[domain] || 0) >= 5)
+    })
+    const chosen = chooseQuestionFromPool(planetPool, positionedQuestions)
+    if (!chosen) return
+
+    setActivePlanet(null)
+    setShowHero(false)
+    setSelectedQuestion({
+      ...chosen,
+      _planetName: planet.name,
+      _planetColor: planet.color,
+    })
+    setIsPlayMode(true)
+    setShowCard(true)
+  }, [chooseQuestionFromPool, positionedQuestions])
+
+  const handlePlanetClick = useCallback((planet) => {
+    setShowHero(false)
+    setSelectedQuestion(null)
+    setShowCard(false)
+    setActivePlanet(planet)
+  }, [])
+
+  const handleBeaconQuestion = useCallback(() => {
+    // Keep Cosmic's ambient beacon animation, but do not interrupt the quiz page
+    // with an automatic question modal.
+  }, [])
 
   const startPlayMode = (filterSettings) => {
     setPlayFilters(filterSettings)
+    setShowHero(false)
     shownIdsRef.current.clear()
     setShowPlayFilters(false)
     setIsPlayMode(true)
@@ -98,7 +197,6 @@ function App() {
   const handleNext = () => {
     setShowCard(false)
     setSelectedQuestion(null)
-    setZoomTarget(null)
     setIsSpinning(true)
     spinTimeoutRef.current = setTimeout(() => {
       setIsSpinning(false)
@@ -108,10 +206,10 @@ function App() {
 
   const handleClose = () => {
     setSelectedQuestion(null)
+    setActivePlanet(null)
     setIsPlayMode(false)
     setIsSpinning(false)
     setIsZooming(false)
-    setZoomTarget(null)
     setShowCard(false)
     setPlayFilters(null)
     if (spinTimeoutRef.current) clearTimeout(spinTimeoutRef.current)
@@ -124,44 +222,32 @@ function App() {
   // Not signed in — show landing page with spinning globe + sign-in
   if (!user) {
     return (
-      <div className="w-full h-full relative">
-        <Canvas camera={{ position: [0, 0, 18], fov: 60 }}>
-          <Scene
-            onSelectQuestion={() => {}}
-            filters={{}}
-            questions={[]}
-            isSpinning={true}
-            isZooming={false}
-            zoomTarget={null}
+      <div className="w-full h-full min-h-screen relative overflow-hidden bg-[#000008]">
+        <WebGLErrorBoundary>
+          <UniverseCanvas
+            cameraZ={cameraZ}
+            onPlanetClick={() => setShowAuth(true)}
+            onBeaconQuestion={() => {}}
           />
-        </Canvas>
+        </WebGLErrorBoundary>
 
-        {/* Brand overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
-          <div className="pointer-events-auto flex flex-col items-center gap-6 px-6">
-            <h1 className="text-5xl font-bold tracking-wider">
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
-                QUIZIVERSE
-              </span>
-            </h1>
-            <p className="text-gray-400 text-sm tracking-wide text-center max-w-xs">
-              Explore the knowledge galaxy. Sign in to play, contribute, and discover.
-            </p>
-            <div className="flex gap-3 mt-2">
-              <button
-                onClick={() => setShowAuth(true)}
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-full shadow-lg shadow-purple-500/30 transition-colors cursor-pointer"
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => setShowAuth(true)}
-                className="px-6 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white font-medium rounded-full shadow-lg transition-colors cursor-pointer"
-              >
-                Sign Up
-              </button>
-            </div>
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-40 bg-gradient-to-b from-cyan-950/20 to-transparent" />
+        <div className="absolute left-5 top-5 z-20 glass rounded-lg px-4 py-3">
+          <div className="font-orbitron text-sm uppercase tracking-[0.32em] text-cyan-300">
+            Quiziverse
           </div>
+          <div className="mt-1 text-xs text-slate-400">The Knowledge Galaxy</div>
+        </div>
+
+        <CosmicBrandOverlay
+          signedIn={false}
+          onPrimaryAction={() => setShowAuth(true)}
+          onSecondaryAction={() => setShowAuth(true)}
+        />
+        <CursorGlow />
+
+        <div className="absolute bottom-4 left-4 z-20 hidden max-w-xs rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-xs text-slate-400 backdrop-blur md:block">
+          <span className="text-cyan-300">Frontend shell:</span> Cosmic Mindscape. <span className="text-slate-500">Workflow:</span> Quiziverse.
         </div>
 
         {showAuth && (
@@ -176,62 +262,77 @@ function App() {
     )
   }
 
-  return (
-    <div className="w-full h-full relative">
-      <Canvas camera={{ position: [0, 0, 18], fov: 60 }}>
-        <Scene
-          onSelectQuestion={(q) => { setSelectedQuestion(q); setShowCard(true) }}
-          filters={{}}
-          questions={questions}
-          isSpinning={isSpinning}
-          isZooming={isZooming}
-          zoomTarget={zoomTarget}
-        />
-      </Canvas>
+  const idle = !activePlanet && !showCard && !selectedQuestion && !showContribute && !showAuth && !showAdmin && !showPlayFilters && !isSpinning && !isZooming
 
-      <Legend />
+  return (
+    <div className="w-full h-full min-h-screen relative overflow-hidden bg-[#000008]">
+      <WebGLErrorBoundary>
+        <UniverseCanvas
+          cameraZ={cameraZ}
+          onPlanetClick={handlePlanetClick}
+          onBeaconQuestion={handleBeaconQuestion}
+        />
+      </WebGLErrorBoundary>
+
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-44 bg-gradient-to-b from-cyan-950/20 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-44 bg-gradient-to-t from-black/60 to-transparent" />
+
+      <CursorGlow />
+
+      <AnimatePresence>
+        {showHero && idle && (
+          <CosmicBrandOverlay
+            signedIn={true}
+            onPrimaryAction={() => setShowHero(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Data source indicator */}
-      <div className="absolute bottom-4 left-4 z-10">
-        <span className="text-xs text-gray-600">
-          {source === 'supabase' ? '⚡ Supabase' : '📁 Local'}
-        </span>
+      <div className="absolute bottom-4 left-4 z-20">
+        <div className="glass inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs text-slate-300">
+          {source === 'supabase' ? <Database className="h-3.5 w-3.5 text-cyan-300" /> : <Folder className="h-3.5 w-3.5 text-cyan-300" />}
+          {source === 'supabase' ? 'Supabase' : 'Local questions'}
+        </div>
       </div>
 
       {/* Top-right auth area */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-1.5">
-        <div className="flex items-center gap-2">
+      <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2">
+        <div className="glass flex items-center gap-2 rounded-full px-2 py-2">
           {isAdmin && (
             <button
               onClick={() => setShowAdmin(true)}
-              className="px-3 py-1.5 bg-amber-600/80 hover:bg-amber-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+              className="inline-flex h-9 items-center gap-2 rounded-full bg-amber-500/15 px-3 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-500/25"
             >
-              ⚙ Admin
+              <Shield className="h-3.5 w-3.5" />
+              Admin
             </button>
           )}
           <button
             onClick={() => signOut()}
-            className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg transition-colors cursor-pointer"
+            className="inline-flex h-9 items-center gap-2 rounded-full bg-white/5 px-3 text-xs text-slate-200 transition-colors hover:bg-white/10"
           >
+            <LogOut className="h-3.5 w-3.5" />
             Sign Out
           </button>
         </div>
-        <span className="text-gray-500 text-xs flex items-center gap-1.5">
-          <span className="text-sm">{profile?.avatar_emoji || '✦'}</span>
-          {profile?.display_name || user.email}
-        </span>
+        <div className="glass inline-flex max-w-[min(18rem,calc(100vw-2rem))] items-center gap-2 rounded-full px-3 py-2 text-xs text-slate-300">
+          <UserCircle className="h-3.5 w-3.5 text-cyan-300" />
+          <span className="truncate">{profile?.display_name || user.email}</span>
+        </div>
       </div>
 
       {/* Bottom center — Play button */}
-      {!showCard && !selectedQuestion && !showContribute && !showAuth && !showAdmin && !showPlayFilters && !isSpinning && !isZooming && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
+      {idle && (
+        <div className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2">
           <button
-            onClick={() => setShowPlayFilters(true)}
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-full shadow-lg shadow-purple-500/30 transition-colors cursor-pointer flex items-center gap-2"
+            onClick={() => {
+              setShowHero(false)
+              setShowPlayFilters(true)
+            }}
+            className="glass glow-border inline-flex items-center gap-2 rounded-full px-6 py-3 font-orbitron text-xs uppercase tracking-widest text-cyan-200 transition-transform duration-300 hover:scale-105 hover:bg-cyan-900/20"
           >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
+            <Play className="h-4 w-4" />
             Play
           </button>
         </div>
@@ -239,10 +340,14 @@ function App() {
 
       {/* Spinning indicator */}
       {(isSpinning || isZooming) && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-          <p className="text-purple-400 text-sm animate-pulse">
+        <div className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2">
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass rounded-full px-4 py-2 text-sm text-cyan-200"
+          >
             {isSpinning ? 'Spinning the globe...' : 'Zooming in...'}
-          </p>
+          </motion.p>
         </div>
       )}
 
@@ -250,16 +355,23 @@ function App() {
       {!selectedQuestion && !showContribute && !showAuth && !showAdmin && (
         <div className="absolute bottom-6 right-6 z-20">
           <button
-            onClick={() => setShowContribute(true)}
-            className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white text-sm font-medium rounded-full shadow-lg transition-colors cursor-pointer flex items-center gap-2"
+            onClick={() => {
+              setShowHero(false)
+              setShowContribute(true)
+            }}
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-200 shadow-lg backdrop-blur transition-colors hover:bg-white/10"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <Plus className="h-4 w-4" />
             Contribute
           </button>
         </div>
       )}
+
+      <PlanetInfoOverlay
+        planet={activePlanet}
+        onClose={() => setActivePlanet(null)}
+        onStartQuiz={startPlanetQuiz}
+      />
 
       {showCard && selectedQuestion && (
         <QuestionCard
