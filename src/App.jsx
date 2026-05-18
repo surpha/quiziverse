@@ -30,7 +30,24 @@ function App() {
   const [showCard, setShowCard] = useState(false)
   const [showCredits, setShowCredits] = useState(false)
   const [showTour, setShowTour] = useState(false)
+  const [selectedDomains, setSelectedDomains] = useState([])
   const spinTimeoutRef = useRef(null)
+
+  const handleToggleDomain = (key) => {
+    if (key === '__clear__') {
+      setSelectedDomains([])
+      return
+    }
+    setSelectedDomains(prev =>
+      prev.includes(key) ? prev.filter(d => d !== key) : [...prev, key]
+    )
+  }
+
+  // Build filters object from selected domains for Scene
+  const domainFilters = useMemo(() => {
+    if (selectedDomains.length === 0) return {}
+    return Object.fromEntries(selectedDomains.map(d => [d, 0.01]))
+  }, [selectedDomains])
 
   // Pre-compute positions so we know where each question lives
   const positionedQuestions = useMemo(() => computePositions(questions), [questions])
@@ -205,7 +222,7 @@ function App() {
         <Scene
           onSelectQuestion={(q) => { setSelectedQuestion(q); setShowCard(true) }}
           onSunClick={() => setShowCredits(true)}
-          filters={{}}
+          filters={domainFilters}
           questions={questions}
           isSpinning={isSpinning}
           isZooming={isZooming}
@@ -213,7 +230,7 @@ function App() {
         />
       </Canvas>
 
-      <Legend />
+      <Legend selectedDomains={selectedDomains} onToggleDomain={handleToggleDomain} />
 
       {/* Data source indicator */}
       <div className="absolute bottom-4 left-4 z-10">
