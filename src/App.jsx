@@ -34,7 +34,7 @@ function MobileFilterDropdown({ label, selectedCount, items, selected, onToggle,
         <span className="text-gray-500">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
-        <div className="absolute top-full right-0 mt-1 glass glow-border rounded-xl p-3 max-h-[50vh] overflow-y-auto w-44 z-50">
+        <div className="absolute top-full left-0 mt-1 glass glow-border rounded-xl p-3 max-h-[50vh] overflow-y-auto w-44 z-50">
           <div className="space-y-1">
             {items.map(item => {
               const active = selected.length === 0 || selected.includes(item.key)
@@ -318,28 +318,29 @@ function App() {
         </span>
       </div>
 
+      {/* Mobile filter dropdowns — top-left */}
+      <div className="md:hidden absolute top-4 left-4 z-20 flex items-center gap-1.5">
+        <MobileFilterDropdown
+          label="Domains"
+          selectedCount={selectedDomains.length}
+          items={DOMAIN_KEYS.map(key => ({ key, label: DOMAINS[key].label, color: DOMAINS[key].color }))}
+          selected={selectedDomains}
+          onToggle={handleToggleDomain}
+          type="domain"
+        />
+        <MobileFilterDropdown
+          label="Types"
+          selectedCount={selectedTypes.length}
+          items={Object.entries(QUESTION_TYPES).map(([key, { label, icon }]) => ({ key, label, icon }))}
+          selected={selectedTypes}
+          onToggle={handleToggleType}
+          type="type"
+        />
+      </div>
+
       {/* Top-right auth area */}
       <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-1.5">
         <div className="flex items-center gap-2">
-          {/* Mobile filter dropdowns */}
-          <div className="md:hidden flex items-center gap-1.5">
-            <MobileFilterDropdown
-              label="Domains"
-              selectedCount={selectedDomains.length}
-              items={DOMAIN_KEYS.map(key => ({ key, label: DOMAINS[key].label, color: DOMAINS[key].color }))}
-              selected={selectedDomains}
-              onToggle={handleToggleDomain}
-              type="domain"
-            />
-            <MobileFilterDropdown
-              label="Types"
-              selectedCount={selectedTypes.length}
-              items={Object.entries(QUESTION_TYPES).map(([key, { label, icon }]) => ({ key, label, icon }))}
-              selected={selectedTypes}
-              onToggle={handleToggleType}
-              type="type"
-            />
-          </div>
           <button
             onClick={() => setShowTour(true)}
             className="px-3 py-1.5 bg-cyan-800/60 hover:bg-cyan-700/80 text-cyan-300 text-xs rounded-lg transition-colors cursor-pointer hidden md:block"
@@ -387,7 +388,7 @@ function App() {
       {/* Bottom center actions */}
       {!showCard && !selectedQuestion && !showContribute && !showAuth && !showAdmin && !showPlayFilters && !isSpinning && !isZooming && (
         <>
-          {/* Desktop: all three buttons */}
+          {/* Desktop: Play + Daily Challenge center */}
           <div className="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 z-20 items-center gap-3">
             <button
               data-tour="play"
@@ -405,20 +406,22 @@ function App() {
             >
               📅 Daily Challenge
             </button>
-            <button
-              data-tour="contribute"
-              onClick={() => setShowContribute(true)}
-              className="px-6 py-3 glass glow-border text-gray-300 hover:text-cyan-300 font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-cyan-900/20"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Contribute
-            </button>
           </div>
 
-          {/* Mobile: Play + Daily bottom center */}
-          <div className="md:hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+          {/* Desktop: Contribute bottom-right */}
+          <button
+            data-tour="contribute"
+            onClick={() => setShowContribute(true)}
+            className="hidden md:flex absolute bottom-6 right-6 z-20 px-6 py-3 glass glow-border text-gray-300 hover:text-cyan-300 font-orbitron tracking-wider rounded-full transition-all cursor-pointer items-center gap-2 hover:bg-cyan-900/20"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Contribute
+          </button>
+
+          {/* Mobile: Play center bottom */}
+          <div className="md:hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
             <button
               data-tour="play"
               onClick={() => setShowPlayFilters(true)}
@@ -429,13 +432,15 @@ function App() {
               </svg>
               Play
             </button>
-            <button
-              onClick={() => setShowDaily(true)}
-              className="px-5 py-2.5 glass glow-border text-amber-300 text-sm font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-amber-900/20"
-            >
-              📅 Daily
-            </button>
           </div>
+
+          {/* Mobile: Daily Challenge bottom-left */}
+          <button
+            onClick={() => setShowDaily(true)}
+            className="md:hidden absolute bottom-6 left-4 z-20 px-4 py-2.5 glass glow-border text-amber-300 text-sm font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-amber-900/20"
+          >
+            📅 Daily
+          </button>
 
           {/* Mobile: Contribute FAB bottom-right */}
           <button
