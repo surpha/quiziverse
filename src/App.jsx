@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import Scene from './components/Scene'
 import QuestionCard from './components/QuestionCard'
@@ -14,6 +14,7 @@ import OnboardingTour from './components/OnboardingTour'
 import DailyChallenge from './components/DailyChallenge'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
+import { useDailyChallenge } from './hooks/useDailyChallenge'
 import { computePositions } from './utils/coordinateMapper'
 
 function App() {
@@ -36,6 +37,14 @@ function App() {
   const [selectedDomains, setSelectedDomains] = useState([])
   const [selectedTypes, setSelectedTypes] = useState([])
   const spinTimeoutRef = useRef(null)
+
+  // Auto-open daily challenge if user hasn't completed today's
+  const { challenge: todayChallenge, attempt: todayAttempt, loading: dailyLoading } = useDailyChallenge(user?.id)
+  useEffect(() => {
+    if (!dailyLoading && user && todayChallenge && !todayAttempt?.completed) {
+      setShowDaily(true)
+    }
+  }, [dailyLoading, user, todayChallenge, todayAttempt])
 
   const handleToggleDomain = (key) => {
     if (key === '__clear__') {

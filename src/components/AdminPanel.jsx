@@ -3,9 +3,10 @@ import { supabase } from '../lib/supabase'
 import DOMAINS, { DOMAIN_KEYS } from '../utils/domainConfig'
 import QUESTION_TYPES from '../utils/questionTypes'
 import { classifyQuestion, factCheckAnswer, generateHints, isLLMConfigured } from '../utils/llmJudge'
+import DailyChallengeAdmin from './DailyChallengeAdmin'
 
 function AdminPanel({ onClose }) {
-  const [tab, setTab] = useState('pending') // 'pending' | 'staging' | 'repository'
+  const [tab, setTab] = useState('pending') // 'pending' | 'staging' | 'repository' | 'daily'
   const [pending, setPending] = useState([])
   const [staging, setStaging] = useState([])
   const [approved, setApproved] = useState([])
@@ -225,6 +226,14 @@ function AdminPanel({ onClose }) {
             Live
             <span className="ml-2 text-gray-500 text-xs">{approved.length}</span>
           </button>
+          <button
+            onClick={() => setTab('daily')}
+            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
+              tab === 'daily' ? 'glass text-amber-300 ring-1 ring-amber-500/50' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+            }`}
+          >
+            📅 Daily
+          </button>
         </div>
 
         {/* Content */}
@@ -263,7 +272,7 @@ function AdminPanel({ onClose }) {
               onDelete={handleDelete}
               getDomainTags={getDomainTags}
             />
-          ) : (
+          ) : tab === 'repository' ? (
             <RepositoryTab
               questions={filteredApproved}
               search={search}
@@ -275,6 +284,8 @@ function AdminPanel({ onClose }) {
               actionLoading={actionLoading}
               getDomainTags={getDomainTags}
             />
+          ) : (
+            <DailyChallengeAdmin />
           )}
         </div>
       </div>

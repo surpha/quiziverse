@@ -26,6 +26,7 @@ export default function DailyChallenge({ userId, onClose }) {
   const [revealedHints, setRevealedHints] = useState([])
   const [showBlast, setShowBlast] = useState(false)
   const [initialized, setInitialized] = useState(false)
+  const [showCompleted, setShowCompleted] = useState(false)
 
   // Sync current question index from attempt ONLY on initial load
   useEffect(() => {
@@ -68,7 +69,7 @@ export default function DailyChallenge({ userId, onClose }) {
   const questions = challenge.questions
   const maxPossible = questions.reduce((sum, q) => sum + (q.max_score || 10), 0)
   const question = questions[currentQ]
-  const isCompleted = attempt?.completed
+  const isCompleted = attempt?.completed || showCompleted
 
   // Calculate score lost by hints for current question
   const hintCostTotal = revealedHints.reduce((sum, idx) => sum + (question.hints[idx]?.cost || 1), 0)
@@ -164,27 +165,41 @@ export default function DailyChallenge({ userId, onClose }) {
 
   const handleShare = async () => {
     const text = generateShareText()
+
+    // Use native share sheet on mobile if available
+    if (navigator.share) {
+      try {
+        await navigator.share({ text })
+        return
+      } catch {
+        // User cancelled or share failed — fall through to clipboard
+      }
+    }
+
+    // Fallback: copy to clipboard
     try {
       await navigator.clipboard.writeText(text)
       alert('Copied to clipboard! Share it anywhere 🚀')
     } catch {
-      // Fallback
       prompt('Copy your result:', text)
     }
   }
 
   // Completed view
   if (isCompleted) {
+    const totalScore = attempt?.total_score || 0
+    const answersData = attempt?.answers || []
     return (
       <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
         <div className="glass glow-border rounded-2xl p-8 max-w-md w-[90%] text-center" onClick={e => e.stopPropagation()}>
           <div className="text-4xl mb-4">🏆</div>
-          <h2 className="text-white text-xl font-orbitron tracking-wider mb-3">Challenge Complete!</h2>
+          <h2 className="text-white text-xl font-orbitron tracking-wider mb-2">Challenge Complete!</h2>
+          <p className="text-gray-400 text-xs mb-4">Daily Quiziverse Challenge • {challenge.challenge_date}</p>
           <div className="mb-6">
-            <ScoreBar score={attempt.total_score} maxPossible={maxPossible} />
+            <ScoreBar score={totalScore} maxPossible={maxPossible} />
           </div>
           <div className="space-y-2 mb-6">
-            {attempt.answers.map((a, i) => (
+            {answersData.map((a, i) => (
               <div key={i} className="flex items-center justify-between text-xs">
                 <span className="text-gray-400">Q{i + 1}</span>
                 <span className={`font-medium ${
@@ -228,7 +243,7 @@ export default function DailyChallenge({ userId, onClose }) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-lg">📅</span>
-            <h3 className="text-white text-sm font-orbitron tracking-wider">Daily Challenge</h3>
+            <h3 className="text-white text-sm font-orbitron tracking-wider">Daily Quiziverse Challenge</h3>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-lg cursor-pointer">×</button>
         </div>
@@ -350,7 +365,7 @@ export default function DailyChallenge({ userId, onClose }) {
             )}
             {currentQ === questions.length - 1 && (
               <button
-                onClick={onClose}
+                onClick={() => setShowCompleted(true)}
                 className="mt-3 w-full px-4 py-2.5 glass glow-border text-cyan-300 text-sm font-medium rounded-lg cursor-pointer hover:bg-cyan-900/20"
               >
                 Finish Challenge
