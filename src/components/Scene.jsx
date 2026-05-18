@@ -10,7 +10,10 @@ import DOMAINS from '../utils/domainConfig'
 function matchesFilters(question, filters) {
   const entries = Object.entries(filters)
   if (entries.length === 0) return true
-  return entries.some(([domain, minWeight]) => (question.weights[domain] || 0) >= minWeight)
+  // Check if question's dominant domain is one of the selected domains
+  const dominant = getDominantDomain(question.weights)
+  if (dominant && filters[dominant] !== undefined) return true
+  return false
 }
 
 /** Majestic translucent white sun at center */
