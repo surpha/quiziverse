@@ -1,0 +1,371 @@
+import { useState, useEffect } from 'react'
+import { verifyAnswer, isLLMConfigured } from '../utils/llmJudge'
+import { useDailyChallenge } from '../hooks/useDailyChallenge'
+
+function ScoreBar({ score, maxPossible }) {
+  const pct = maxPossible > 0 ? Math.round((score / maxPossible) * 100) : 0
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 rounded-full transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-cyan-300 text-xs font-orbitron">{score}/{maxPossible}</span>
+    </div>
+  )
+}
+
+export default function DailyChallenge({ userId, onClose }) {
+  const { challenge, attempt, loading, error, startAttempt, saveAnswer } = useDailyChallenge(userId)
+  const [currentQ, setCurrentQ] = useState(0)
+  const [userAnswer, setUserAnswer] = useState('')
+  const [verifying, setVerifying] = useState(false)
+  const [verdict, setVerdict] = useState(null)
+  const [revealedHints, setRevealedHints] = useState([])
+  const [showBlast, setShowBlast] = useState(false)
+  const [initialized, setInitialized] = useState(false)
+
+  // Sync current question index from attempt ONLY on initial load
+  useEffect(() => {
+    if (attempt && !initialized) {
+      setCurrentQ(attempt.completed ? attempt.answers.length - 1 : attempt.current_index)
+      setInitialized(true)
+    }
+  }, [attempt, initialized])
+
+  // Start attempt on first open if none exists
+  useEffect(() => {
+    if (challenge && !attempt && !loading) {
+      startAttempt()
+    }
+  }, [challenge, attempt, loading, startAttempt])
+
+  if (loading) {
+    return (
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80">
+        <p className="text-cyan-400 text-sm animate-pulse font-orbitron">Loading daily challenge...</p>
+      </div>
+    )
+  }
+
+  if (!challenge) {
+    return (
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
+        <div className="glass glow-border rounded-2xl p-8 max-w-md w-[90%] text-center" onClick={e => e.stopPropagation()}>
+          <div className="text-4xl mb-4">🌙</div>
+          <h2 className="text-white text-xl font-orbitron tracking-wider mb-3">No Challenge Today</h2>
+          <p className="text-gray-400 text-sm mb-6">Check back tomorrow at midnight IST for a new daily challenge!</p>
+          <button onClick={onClose} className="px-6 py-2.5 glass glow-border text-cyan-300 text-sm rounded-full cursor-pointer hover:bg-cyan-900/20">
+            Close
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const questions = challenge.questions
+  const maxPossible = questions.reduce((sum, q) => sum + (q.max_score || 10), 0)
+  const question = questions[currentQ]
+  const isCompleted = attempt?.completed
+
+  // Calculate score lost by hints for current question
+  const hintCostTotal = revealedHints.reduce((sum, idx) => sum + (question.hints[idx]?.cost || 1), 0)
+  const questionMaxScore = question?.max_score || 10
+
+  const handleRevealHint = (hintIdx) => {
+    if (!revealedHints.includes(hintIdx)) {
+      setRevealedHints(prev => [...prev, hintIdx])
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!userAnswer.trim() || verifying) return
+    setVerifying(true)
+    try {
+      const result = await verifyAnswer(question.question, question.answer, userAnswer.trim())
+      setVerdict(result)
+
+      // Calculate score
+      let score = 0
+      if (result.verdict === 'correct') {
+        score = Math.max(0, questionMaxScore - hintCostTotal)
+        setShowBlast(true)
+      } else if (result.verdict === 'partial') {
+        score = Math.max(0, Math.floor((questionMaxScore - hintCostTotal) * 0.5))
+      }
+
+      // Save to DB
+      await saveAnswer(currentQ, userAnswer.trim(), result.verdict, revealedHints, score)
+    } catch {
+      // On verification failure, mark as incorrect with 0 score
+      const fallbackVerdict = { verdict: 'incorrect', explanation: 'Verification failed. Marked as incorrect.' }
+      setVerdict(fallbackVerdict)
+      await saveAnswer(currentQ, userAnswer.trim(), 'incorrect', revealedHints, 0)
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  const handleNext = () => {
+    setUserAnswer('')
+    setVerdict(null)
+    setRevealedHints([])
+    setShowBlast(false)
+    setCurrentQ(prev => prev + 1)
+  }
+
+  // Generate shareable text
+  const generateShareText = () => {
+    const date = challenge.challenge_date
+    const answers = attempt.answers
+    const total = attempt.total_score
+    const max = maxPossible
+
+    // Per-question rows with verdict, hints used, and score
+    const rows = answers.map((a, i) => {
+      const q = questions[a.question_index]
+      const qMax = q?.max_score || 10
+      const totalHints = (q?.hints || []).length
+      const hintsUsed = (a.hints_used || []).length
+
+      // Verdict emoji
+      const verdict = a.verdict === 'correct' ? '🟩' : a.verdict === 'partial' ? '🟨' : '🟥'
+
+      // Hint circles: ● = used, ○ = available but unused
+      const hintStr = totalHints > 0
+        ? ' ' + '●'.repeat(hintsUsed) + '○'.repeat(totalHints - hintsUsed)
+        : ''
+
+      // Score
+      const scoreStr = `${a.score}/${qMax}`
+
+      return `${verdict}${hintStr}  ${scoreStr}`
+    })
+
+    // Star rating: 5 stars, each represents 20%
+    const overallPct = max > 0 ? total / max : 0
+    const filledStars = Math.round(overallPct * 5)
+    const stars = '★'.repeat(filledStars) + '☆'.repeat(5 - filledStars)
+
+    const text = [
+      `🌌 Quiziverse Daily • ${date}`,
+      '',
+      ...rows,
+      '',
+      `Total: ${total}/${max} ${stars}`,
+      '',
+      'https://quiziverse-tau.vercel.app'
+    ].join('\n')
+
+    return text
+  }
+
+  const handleShare = async () => {
+    const text = generateShareText()
+    try {
+      await navigator.clipboard.writeText(text)
+      alert('Copied to clipboard! Share it anywhere 🚀')
+    } catch {
+      // Fallback
+      prompt('Copy your result:', text)
+    }
+  }
+
+  // Completed view
+  if (isCompleted) {
+    return (
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
+        <div className="glass glow-border rounded-2xl p-8 max-w-md w-[90%] text-center" onClick={e => e.stopPropagation()}>
+          <div className="text-4xl mb-4">🏆</div>
+          <h2 className="text-white text-xl font-orbitron tracking-wider mb-3">Challenge Complete!</h2>
+          <div className="mb-6">
+            <ScoreBar score={attempt.total_score} maxPossible={maxPossible} />
+          </div>
+          <div className="space-y-2 mb-6">
+            {attempt.answers.map((a, i) => (
+              <div key={i} className="flex items-center justify-between text-xs">
+                <span className="text-gray-400">Q{i + 1}</span>
+                <span className={`font-medium ${
+                  a.verdict === 'correct' ? 'text-emerald-400' :
+                  a.verdict === 'partial' ? 'text-amber-400' : 'text-red-400'
+                }`}>
+                  {a.verdict === 'correct' ? '✓' : a.verdict === 'partial' ? '~' : '✗'} {a.score} pts
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Shareable preview */}
+          <div className="bg-gray-900/80 rounded-lg p-3 mb-4 text-left">
+            <pre className="text-gray-300 text-xs whitespace-pre-wrap font-mono leading-relaxed">{generateShareText()}</pre>
+          </div>
+
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={handleShare}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-full cursor-pointer transition-colors flex items-center gap-2"
+            >
+              📋 Share Result
+            </button>
+            <button onClick={onClose} className="px-5 py-2.5 glass glow-border text-cyan-300 text-sm rounded-full cursor-pointer hover:bg-cyan-900/20">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Already answered this question (viewing past answer)
+  const existingAnswer = attempt?.answers?.find(a => a.question_index === currentQ)
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
+      <div className="glass glow-border rounded-2xl p-6 max-w-lg w-[92%] max-h-[90vh] overflow-y-auto relative" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">📅</span>
+            <h3 className="text-white text-sm font-orbitron tracking-wider">Daily Challenge</h3>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-lg cursor-pointer">×</button>
+        </div>
+
+        {/* Progress */}
+        <div className="flex items-center gap-2 mb-4">
+          {questions.map((_, i) => (
+            <div
+              key={i}
+              className={`flex-1 h-1.5 rounded-full transition-all ${
+                i < currentQ ? 'bg-emerald-500' :
+                i === currentQ ? 'bg-cyan-400' : 'bg-gray-700'
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Score so far */}
+        <div className="mb-4">
+          <ScoreBar score={attempt?.total_score || 0} maxPossible={maxPossible} />
+        </div>
+
+        {/* Question */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-gray-500 text-xs">Q{currentQ + 1} of {questions.length}</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">
+              Difficulty: {question.difficulty}/10
+            </span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-900/50 text-cyan-300">
+              {questionMaxScore} pts
+            </span>
+          </div>
+          <p className="text-white text-base leading-relaxed">{question.question}</p>
+        </div>
+
+        {/* Hints */}
+        {question.hints && question.hints.length > 0 && (
+          <div className="mb-4 space-y-2">
+            <p className="text-gray-500 text-xs uppercase tracking-wider">Hints (cost shown)</p>
+            {question.hints.map((hint, idx) => (
+              <div key={idx}>
+                {revealedHints.includes(idx) ? (
+                  <div className="text-amber-300/90 text-sm bg-amber-900/20 rounded-lg px-3 py-2">
+                    💡 {hint.text}
+                    <span className="text-amber-500/60 text-xs ml-2">(-{hint.cost})</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleRevealHint(idx)}
+                    disabled={!!verdict || !!existingAnswer}
+                    className="text-gray-400 hover:text-amber-300 text-xs bg-gray-800/50 rounded-lg px-3 py-2 cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-not-allowed w-full text-left"
+                  >
+                    💡 Reveal hint {idx + 1} <span className="text-gray-600">(-{hint.cost} pts)</span>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Answer input */}
+        {!existingAnswer && (
+          <div className="space-y-3">
+            <textarea
+              value={userAnswer}
+              onChange={(e) => setUserAnswer(e.target.value)}
+              placeholder="Type your answer..."
+              disabled={!!verdict}
+              className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-cyan-500 resize-none disabled:opacity-50"
+              rows={2}
+            />
+
+            {!verdict && (
+              <button
+                onClick={handleSubmit}
+                disabled={!userAnswer.trim() || verifying}
+                className="w-full px-4 py-2.5 bg-cyan-600/80 hover:bg-cyan-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
+              >
+                {verifying ? 'Verifying...' : 'Submit Answer'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Verdict */}
+        {(verdict || existingAnswer) && (
+          <div className="mt-4">
+            <div className={`rounded-lg px-4 py-3 ${
+              (verdict?.verdict || existingAnswer?.verdict) === 'correct'
+                ? 'bg-emerald-900/30 border border-emerald-500/30' :
+              (verdict?.verdict || existingAnswer?.verdict) === 'partial'
+                ? 'bg-amber-900/30 border border-amber-500/30'
+                : 'bg-red-900/30 border border-red-500/30'
+            }`}>
+              <p className={`text-sm font-medium ${
+                (verdict?.verdict || existingAnswer?.verdict) === 'correct' ? 'text-emerald-400' :
+                (verdict?.verdict || existingAnswer?.verdict) === 'partial' ? 'text-amber-400' : 'text-red-400'
+              }`}>
+                {(verdict?.verdict || existingAnswer?.verdict) === 'correct' ? '✓ Correct!' :
+                 (verdict?.verdict || existingAnswer?.verdict) === 'partial' ? '~ Partially Correct' : '✗ Incorrect'}
+              </p>
+              {verdict?.explanation && (
+                <p className="text-gray-300 text-xs mt-1">{verdict.explanation}</p>
+              )}
+              <p className="text-gray-500 text-xs mt-2">
+                Answer: {question.answer}
+              </p>
+            </div>
+
+            {/* Next / Finish button — shown after any verdict */}
+            {currentQ < questions.length - 1 && (
+              <button
+                onClick={handleNext}
+                className="mt-3 w-full px-4 py-2.5 glass glow-border text-cyan-300 text-sm font-medium rounded-lg cursor-pointer hover:bg-cyan-900/20"
+              >
+                Next Question →
+              </button>
+            )}
+            {currentQ === questions.length - 1 && (
+              <button
+                onClick={onClose}
+                className="mt-3 w-full px-4 py-2.5 glass glow-border text-cyan-300 text-sm font-medium rounded-lg cursor-pointer hover:bg-cyan-900/20"
+              >
+                Finish Challenge
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Cosmic blast on correct */}
+        {showBlast && (
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div className="animate-cosmic-flash w-4 h-4 rounded-full bg-cyan-400" />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

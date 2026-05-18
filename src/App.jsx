@@ -11,6 +11,7 @@ import LoadingScreen from './components/LoadingScreen'
 import PlayFilters from './components/PlayFilters'
 import ResetPassword from './components/ResetPassword'
 import OnboardingTour from './components/OnboardingTour'
+import DailyChallenge from './components/DailyChallenge'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { computePositions } from './utils/coordinateMapper'
@@ -31,6 +32,7 @@ function App() {
   const [showCard, setShowCard] = useState(false)
   const [showCredits, setShowCredits] = useState(false)
   const [showTour, setShowTour] = useState(false)
+  const [showDaily, setShowDaily] = useState(false)
   const [selectedDomains, setSelectedDomains] = useState([])
   const [selectedTypes, setSelectedTypes] = useState([])
   const spinTimeoutRef = useRef(null)
@@ -297,6 +299,12 @@ function App() {
             Play
           </button>
           <button
+            onClick={() => setShowDaily(true)}
+            className="px-5 py-2.5 glass glow-border text-amber-300 text-sm font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-amber-900/20"
+          >
+            📅 Daily Challenge
+          </button>
+          <button
             data-tour="contribute"
             onClick={() => setShowContribute(true)}
             className="px-5 py-2.5 glass text-gray-300 hover:text-cyan-300 text-sm font-medium rounded-full shadow-lg transition-all cursor-pointer flex items-center gap-2"
@@ -350,6 +358,10 @@ function App() {
 
       {showTour && (
         <OnboardingTour onClose={() => setShowTour(false)} />
+      )}
+
+      {showDaily && (
+        <DailyChallenge userId={user.id} onClose={() => setShowDaily(false)} />
       )}
 
       {showPlayFilters && (
