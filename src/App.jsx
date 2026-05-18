@@ -38,11 +38,14 @@ function App() {
   const [selectedTypes, setSelectedTypes] = useState([])
   const spinTimeoutRef = useRef(null)
 
-  // Auto-open daily challenge if user hasn't completed today's
+  // Auto-open daily challenge once per day if user hasn't completed it
   const { challenge: todayChallenge, attempt: todayAttempt, loading: dailyLoading } = useDailyChallenge(user?.id)
   useEffect(() => {
     if (!dailyLoading && user && todayChallenge && !todayAttempt?.completed) {
-      setShowDaily(true)
+      const dismissKey = `daily-dismissed-${todayChallenge.challenge_date}`
+      if (!sessionStorage.getItem(dismissKey)) {
+        setShowDaily(true)
+      }
     }
   }, [dailyLoading, user, todayChallenge, todayAttempt])
 
@@ -370,7 +373,12 @@ function App() {
       )}
 
       {showDaily && (
-        <DailyChallenge userId={user.id} onClose={() => setShowDaily(false)} />
+        <DailyChallenge userId={user.id} onClose={() => {
+          setShowDaily(false)
+          if (todayChallenge) {
+            sessionStorage.setItem(`daily-dismissed-${todayChallenge.challenge_date}`, '1')
+          }
+        }} />
       )}
 
       {showPlayFilters && (
