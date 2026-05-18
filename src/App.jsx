@@ -16,6 +16,58 @@ import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { useDailyChallenge } from './hooks/useDailyChallenge'
 import { computePositions } from './utils/coordinateMapper'
+import DOMAINS, { DOMAIN_KEYS } from './utils/domainConfig'
+import QUESTION_TYPES from './utils/questionTypes'
+
+function MobileFilterDropdown({ label, selectedCount, items, selected, onToggle, type }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="glass rounded-lg px-2.5 py-1.5 flex items-center gap-1 cursor-pointer text-[11px]"
+      >
+        <span className="text-gray-300">{label}</span>
+        {selectedCount > 0 && (
+          <span className="text-cyan-400 font-medium">{selectedCount}</span>
+        )}
+        <span className="text-gray-500">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="absolute top-full right-0 mt-1 glass glow-border rounded-xl p-3 max-h-[50vh] overflow-y-auto w-44 z-50">
+          <div className="space-y-1">
+            {items.map(item => {
+              const active = selected.length === 0 || selected.includes(item.key)
+              return (
+                <div
+                  key={item.key}
+                  className={`flex items-center gap-2 cursor-pointer rounded px-2 py-1 hover:bg-white/5 transition-opacity ${active ? 'opacity-100' : 'opacity-30'}`}
+                  onClick={() => onToggle(item.key)}
+                >
+                  {type === 'domain' && (
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                  )}
+                  {type === 'type' && (
+                    <span className="text-xs shrink-0">{item.icon}</span>
+                  )}
+                  <span className="text-gray-300 text-[11px] leading-tight">{type === 'domain' ? item.label.split(' & ')[0] : item.label}</span>
+                </div>
+              )
+            })}
+          </div>
+          {selected.length > 0 && (
+            <button
+              onClick={() => onToggle('__clear__')}
+              className="mt-2 text-gray-500 hover:text-cyan-400 text-[10px] uppercase tracking-wider cursor-pointer"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function App() {
   const { questions, loading, source, refetch } = useQuestions()
@@ -269,16 +321,35 @@ function App() {
       {/* Top-right auth area */}
       <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-1.5">
         <div className="flex items-center gap-2">
+          {/* Mobile filter dropdowns */}
+          <div className="md:hidden flex items-center gap-1.5">
+            <MobileFilterDropdown
+              label="Domains"
+              selectedCount={selectedDomains.length}
+              items={DOMAIN_KEYS.map(key => ({ key, label: DOMAINS[key].label, color: DOMAINS[key].color }))}
+              selected={selectedDomains}
+              onToggle={handleToggleDomain}
+              type="domain"
+            />
+            <MobileFilterDropdown
+              label="Types"
+              selectedCount={selectedTypes.length}
+              items={Object.entries(QUESTION_TYPES).map(([key, { label, icon }]) => ({ key, label, icon }))}
+              selected={selectedTypes}
+              onToggle={handleToggleType}
+              type="type"
+            />
+          </div>
           <button
             onClick={() => setShowTour(true)}
-            className="px-3 py-1.5 bg-cyan-800/60 hover:bg-cyan-700/80 text-cyan-300 text-xs rounded-lg transition-colors cursor-pointer"
+            className="px-3 py-1.5 bg-cyan-800/60 hover:bg-cyan-700/80 text-cyan-300 text-xs rounded-lg transition-colors cursor-pointer hidden md:block"
           >
             ? How to Play
           </button>
           {isAdmin && (
             <button
               onClick={() => setShowAdmin(true)}
-              className="px-3 py-1.5 bg-amber-600/80 hover:bg-amber-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+              className="px-3 py-1.5 bg-amber-600/80 hover:bg-amber-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer hidden md:block"
             >
               ⚙ Admin
             </button>
@@ -290,43 +361,93 @@ function App() {
             Sign Out
           </button>
         </div>
+        {/* Mobile: How to Play + Admin below sign out */}
+        <div className="md:hidden flex items-center gap-1.5">
+          <button
+            onClick={() => setShowTour(true)}
+            className="px-2.5 py-1 bg-cyan-800/60 hover:bg-cyan-700/80 text-cyan-300 text-[10px] rounded-lg transition-colors cursor-pointer"
+          >
+            ? How to Play
+          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setShowAdmin(true)}
+              className="px-2.5 py-1 bg-amber-600/80 hover:bg-amber-500 text-white text-[10px] font-medium rounded-lg transition-colors cursor-pointer"
+            >
+              ⚙ Admin
+            </button>
+          )}
+        </div>
         <span className="text-gray-500 text-xs flex items-center gap-1.5">
           <span className="text-sm">{profile?.avatar_emoji || '✦'}</span>
           {profile?.display_name || user.email}
         </span>
       </div>
 
-      {/* Bottom center — Play button */}
       {/* Bottom center actions */}
       {!showCard && !selectedQuestion && !showContribute && !showAuth && !showAdmin && !showPlayFilters && !isSpinning && !isZooming && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
-          <button
-            data-tour="play"
-            onClick={() => setShowPlayFilters(true)}
-            className="px-6 py-3 glass glow-border text-cyan-300 font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-cyan-900/20"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-            Play
-          </button>
-          <button
-            onClick={() => setShowDaily(true)}
-            className="px-5 py-2.5 glass glow-border text-amber-300 text-sm font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-amber-900/20"
-          >
-            📅 Daily Challenge
-          </button>
+        <>
+          {/* Desktop: all three buttons */}
+          <div className="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 z-20 items-center gap-3">
+            <button
+              data-tour="play"
+              onClick={() => setShowPlayFilters(true)}
+              className="px-6 py-3 glass glow-border text-cyan-300 font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-cyan-900/20"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Play
+            </button>
+            <button
+              onClick={() => setShowDaily(true)}
+              className="px-6 py-3 glass glow-border text-amber-300 font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-amber-900/20"
+            >
+              📅 Daily Challenge
+            </button>
+            <button
+              data-tour="contribute"
+              onClick={() => setShowContribute(true)}
+              className="px-6 py-3 glass glow-border text-gray-300 hover:text-cyan-300 font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-cyan-900/20"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Contribute
+            </button>
+          </div>
+
+          {/* Mobile: Play + Daily bottom center */}
+          <div className="md:hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+            <button
+              data-tour="play"
+              onClick={() => setShowPlayFilters(true)}
+              className="px-5 py-2.5 glass glow-border text-cyan-300 text-sm font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-cyan-900/20"
+            >
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Play
+            </button>
+            <button
+              onClick={() => setShowDaily(true)}
+              className="px-5 py-2.5 glass glow-border text-amber-300 text-sm font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-amber-900/20"
+            >
+              📅 Daily
+            </button>
+          </div>
+
+          {/* Mobile: Contribute FAB bottom-right */}
           <button
             data-tour="contribute"
             onClick={() => setShowContribute(true)}
-            className="px-5 py-2.5 glass text-gray-300 hover:text-cyan-300 text-sm font-medium rounded-full shadow-lg transition-all cursor-pointer flex items-center gap-2"
+            className="md:hidden absolute bottom-6 right-4 z-20 w-12 h-12 glass glow-border rounded-full flex items-center justify-center text-cyan-300 hover:bg-cyan-900/20 transition-all cursor-pointer shadow-lg"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
             </svg>
-            Contribute
           </button>
-        </div>
+        </>
       )}
 
       {/* Spinning indicator */}
