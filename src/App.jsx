@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import Scene from './components/Scene'
 import QuestionCard from './components/QuestionCard'
 import Legend from './components/Legend'
+import TypeFilter from './components/TypeFilter'
 import ContributeForm from './components/ContributeForm'
 import AuthModal from './components/AuthModal'
 import AdminPanel from './components/AdminPanel'
@@ -31,6 +32,7 @@ function App() {
   const [showCredits, setShowCredits] = useState(false)
   const [showTour, setShowTour] = useState(false)
   const [selectedDomains, setSelectedDomains] = useState([])
+  const [selectedTypes, setSelectedTypes] = useState([])
   const spinTimeoutRef = useRef(null)
 
   const handleToggleDomain = (key) => {
@@ -43,11 +45,21 @@ function App() {
     )
   }
 
-  // Build filters object from selected domains for Scene
-  const domainFilters = useMemo(() => {
-    if (selectedDomains.length === 0) return {}
-    return Object.fromEntries(selectedDomains.map(d => [d, 0.01]))
-  }, [selectedDomains])
+  const handleToggleType = (key) => {
+    if (key === '__clear__') {
+      setSelectedTypes([])
+      return
+    }
+    setSelectedTypes(prev =>
+      prev.includes(key) ? prev.filter(t => t !== key) : [...prev, key]
+    )
+  }
+
+  // Build filters object from selected domains + types for Scene
+  const sceneFilters = useMemo(() => ({
+    domains: selectedDomains,
+    types: selectedTypes,
+  }), [selectedDomains, selectedTypes])
 
   // Pre-compute positions so we know where each question lives
   const positionedQuestions = useMemo(() => computePositions(questions), [questions])
@@ -222,7 +234,7 @@ function App() {
         <Scene
           onSelectQuestion={(q) => { setSelectedQuestion(q); setShowCard(true) }}
           onSunClick={() => setShowCredits(true)}
-          filters={domainFilters}
+          filters={sceneFilters}
           questions={questions}
           isSpinning={isSpinning}
           isZooming={isZooming}
@@ -231,6 +243,7 @@ function App() {
       </Canvas>
 
       <Legend selectedDomains={selectedDomains} onToggleDomain={handleToggleDomain} />
+      <TypeFilter selectedTypes={selectedTypes} onToggleType={handleToggleType} />
 
       {/* Data source indicator */}
       <div className="absolute bottom-4 left-4 z-10">

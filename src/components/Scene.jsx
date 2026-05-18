@@ -8,12 +8,16 @@ import { getDominantDomain } from '../utils/domainConfig'
 import DOMAINS from '../utils/domainConfig'
 
 function matchesFilters(question, filters) {
-  const entries = Object.entries(filters)
-  if (entries.length === 0) return true
-  // Check if question's dominant domain is one of the selected domains
-  const dominant = getDominantDomain(question.weights)
-  if (dominant && filters[dominant] !== undefined) return true
-  return false
+  // Domain filter: check if question's dominant domain is in selected set
+  if (filters.domains && filters.domains.length > 0) {
+    const dominant = getDominantDomain(question.weights)
+    if (!dominant || !filters.domains.includes(dominant)) return false
+  }
+  // Type filter: check if question's type is in selected set
+  if (filters.types && filters.types.length > 0) {
+    if (!filters.types.includes(question.type)) return false
+  }
+  return true
 }
 
 /** Majestic translucent white sun at center */
