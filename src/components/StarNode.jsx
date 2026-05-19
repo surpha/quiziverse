@@ -43,12 +43,20 @@ const planetFragmentShader = `
   }
 
   void main() {
-    // Surface bands (latitude-like)
-    float bands = sin(vUv.y * 12.0 + uTime * 0.1) * 0.5 + 0.5;
-    // Noise detail
-    float n = noise(vUv * 8.0 + uTime * 0.05);
-    // Mix colors
-    float mix_factor = bands * 0.6 + n * 0.4;
+    // Use normal-space coordinates to avoid UV seam artifacts.
+    vec3 nrm = normalize(vNormal);
+    vec2 surf = nrm.xy;
+
+    // Softer latitude tint (no harsh dark striping).
+    float bands = 0.5 + 0.5 * sin(nrm.y * 5.0 + uTime * 0.08);
+
+    // Multi-layer soft noise for organic surface detail.
+    float n1 = noise(surf * 3.8 + uTime * 0.04);
+    float n2 = noise(surf.yx * 7.2 - uTime * 0.03);
+    float n = n1 * 0.65 + n2 * 0.35;
+
+    // Mix colors with gentler contrast.
+    float mix_factor = 0.3 + bands * 0.3 + n * 0.4;
     vec3 surface = mix(uColor1, uColor2, mix_factor);
 
     // Polar caps (brighter at poles)
@@ -57,7 +65,7 @@ const planetFragmentShader = `
 
     // Soft wrap lighting
     vec3 lightDir = normalize(vec3(1.0, 0.8, 0.5));
-    float diffuse = max(dot(vNormal, lightDir), 0.0) * 0.3 + 0.7;
+    float diffuse = max(dot(nrm, lightDir), 0.0) * 0.25 + 0.75;
     surface *= diffuse;
 
     // Emissive self-glow — slightly brighter

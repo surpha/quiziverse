@@ -20,36 +20,73 @@ function matchesFilters(question, filters) {
   return true
 }
 
-/** Majestic translucent white sun at center */
+/** Bright yellow sun core with soft animated halo */
 function CenterBeacon({ onClick }) {
-  const meshRef = useRef()
+  const coreRef = useRef()
+  const haloOuterRef = useRef()
+  const haloInnerRef = useRef()
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime()
-    if (meshRef.current) {
-      meshRef.current.material.emissiveIntensity = 1.0 + Math.sin(t * 1.5) * 0.15 + Math.sin(t * 3.7) * 0.06
-      meshRef.current.material.opacity = 0.85 + Math.sin(t * 0.8) * 0.05
+    if (coreRef.current) {
+      coreRef.current.material.emissiveIntensity = 1.55 + Math.sin(t * 1.4) * 0.22 + Math.sin(t * 3.5) * 0.1
+      coreRef.current.material.opacity = 0.95 + Math.sin(t * 0.9) * 0.03
+    }
+    if (haloOuterRef.current) {
+      haloOuterRef.current.material.opacity = 0.24 + Math.sin(t * 0.6) * 0.05
+      const scale = 1.0 + Math.sin(t * 0.7) * 0.03
+      haloOuterRef.current.scale.set(scale, scale, scale)
+    }
+    if (haloInnerRef.current) {
+      haloInnerRef.current.material.opacity = 0.34 + Math.sin(t * 1.1) * 0.06
+      const scale = 1.0 + Math.sin(t * 1.2 + 0.6) * 0.02
+      haloInnerRef.current.scale.set(scale, scale, scale)
     }
   })
 
   return (
-    <mesh
-      ref={meshRef}
+    <group
       onClick={(e) => { e.stopPropagation(); onClick?.() }}
       onPointerOver={() => { document.body.style.cursor = 'pointer' }}
       onPointerOut={() => { document.body.style.cursor = 'default' }}
     >
-      <sphereGeometry args={[1.6, 48, 48]} />
-      <meshStandardMaterial
-        color="#ffffff"
-        emissive="#ffffff"
-        emissiveIntensity={1.0}
-        roughness={0.1}
-        metalness={0.0}
-        transparent
-        opacity={0.85}
-      />
-    </mesh>
+      <mesh ref={haloOuterRef}>
+        <sphereGeometry args={[2.5, 40, 40]} />
+        <meshBasicMaterial
+          color="#fff8a6"
+          transparent
+          opacity={0.24}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.BackSide}
+        />
+      </mesh>
+
+      <mesh ref={haloInnerRef}>
+        <sphereGeometry args={[2.0, 40, 40]} />
+        <meshBasicMaterial
+          color="#fff2a0"
+          transparent
+          opacity={0.34}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.BackSide}
+        />
+      </mesh>
+
+      <mesh ref={coreRef}>
+        <sphereGeometry args={[1.6, 48, 48]} />
+        <meshStandardMaterial
+          color="#fff4b8"
+          emissive="#ffe97a"
+          emissiveIntensity={1.55}
+          roughness={0.18}
+          metalness={0.0}
+          transparent
+          opacity={0.95}
+        />
+      </mesh>
+    </group>
   )
 }
 
