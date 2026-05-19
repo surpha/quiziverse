@@ -151,15 +151,28 @@ export default function DailyChallenge({ userId, onClose }) {
     const total = attempt.total_score
     const max = maxPossible
 
-    // Per-question rows with verdict, hints used, and score
+    // Moon phases from full (perfect) to new (zero)
+    const moonPhases = ['🌕', '🌖', '🌗', '🌘', '🌑']
+
+    const getMoonPhase = (score, maxScore) => {
+      if (maxScore === 0) return moonPhases[4]
+      const ratio = score / maxScore
+      if (ratio >= 1) return moonPhases[0]      // 🌕 perfect
+      if (ratio >= 0.75) return moonPhases[1]   // 🌖
+      if (ratio >= 0.5) return moonPhases[2]    // 🌗
+      if (ratio > 0) return moonPhases[3]       // 🌘
+      return moonPhases[4]                       // 🌑 zero
+    }
+
+    // Per-question rows with moon phase, hints used, and score
     const rows = answers.map((a, i) => {
       const q = questions[a.question_index]
       const qMax = q?.max_score || 10
       const totalHints = (q?.hints || []).length
       const hintsUsed = (a.hints_used || []).length
 
-      // Verdict emoji
-      const verdict = a.verdict === 'correct' ? '🟩' : a.verdict === 'partial' ? '🟨' : '🟥'
+      // Moon phase based on score ratio
+      const moon = getMoonPhase(a.score, qMax)
 
       // Hint circles: ● = used, ○ = available but unused
       const hintStr = totalHints > 0
@@ -169,13 +182,13 @@ export default function DailyChallenge({ userId, onClose }) {
       // Score
       const scoreStr = `${a.score}/${qMax}`
 
-      return `${verdict}${hintStr}  ${scoreStr}`
+      return `${moon}${hintStr}  ${scoreStr}`
     })
 
-    // Star rating: 5 stars, each represents 20%
+    // Star rating: 5 stars using ⭐ emoji
     const overallPct = max > 0 ? total / max : 0
     const filledStars = Math.round(overallPct * 5)
-    const stars = '★'.repeat(filledStars) + '☆'.repeat(5 - filledStars)
+    const stars = '⭐'.repeat(filledStars) + '☆'.repeat(5 - filledStars)
 
     const text = [
       `🌌 Quiziverse Daily • ${date}`,
@@ -184,7 +197,7 @@ export default function DailyChallenge({ userId, onClose }) {
       '',
       `Total: ${total}/${max} ${stars}`,
       '',
-      'https://quiziverse-tau.vercel.app'
+      'Play daily → https://quiziverse-tau.vercel.app'
     ].join('\n')
 
     return text
