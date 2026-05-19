@@ -140,6 +140,21 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
     }
   }
 
+  // Keyboard shortcuts: Enter for next, Escape to close
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+      } else if (e.key === 'Enter' && revealed && isPlayMode) {
+        e.preventDefault()
+        handleNext()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [revealed, isPlayMode])
+
   const typeInfo = QUESTION_TYPES[question.type] || QUESTION_TYPES.straight
   const difficultyDots = question.difficulty || 3
 

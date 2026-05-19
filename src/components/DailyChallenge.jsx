@@ -117,6 +117,28 @@ export default function DailyChallenge({ userId, onClose }) {
     setCurrentQ(prev => prev + 1)
   }
 
+  // Keyboard shortcuts: Enter for next/finish after verdict, Escape to close
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+      } else if (e.key === 'Enter' && !e.shiftKey) {
+        const hasVerdict = verdict || attempt?.answers?.find(a => a.question_index === currentQ)
+        if (hasVerdict) {
+          e.preventDefault()
+          if (currentQ < questions.length - 1) {
+            handleNext()
+          } else {
+            setShowCompleted(true)
+          }
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [verdict, currentQ, questions.length, attempt])
+
   // Generate shareable text
   const generateShareText = () => {
     const date = challenge.challenge_date
@@ -308,13 +330,20 @@ export default function DailyChallenge({ userId, onClose }) {
         {/* Answer input */}
         {!existingAnswer && (
           <div className="space-y-3">
-            <textarea
+            <input
+              type="text"
               value={userAnswer}
               onChange={(e) => setUserAnswer(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && userAnswer.trim() && !verifying) {
+                  e.preventDefault()
+                  handleSubmit()
+                }
+              }}
               placeholder="Type your answer..."
               disabled={!!verdict}
-              className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-cyan-500 resize-none disabled:opacity-50"
-              rows={2}
+              className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-cyan-500 disabled:opacity-50"
+              autoFocus
             />
 
             {!verdict && (
