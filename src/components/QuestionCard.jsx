@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import DOMAINS from '../utils/domainConfig'
 import QUESTION_TYPES from '../utils/questionTypes'
 import { verifyAnswer, isLLMConfigured } from '../utils/llmJudge'
@@ -104,6 +104,7 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
   const [judging, setJudging] = useState(false)
   const [hintsRevealed, setHintsRevealed] = useState(0)
   const [showBlast, setShowBlast] = useState(false)
+  const canSubmitAnswer = !judging && !!userAnswer.trim()
 
   const handleNext = () => {
     setRevealed(false)
@@ -115,7 +116,7 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
   }
 
   const handleSubmitAnswer = async () => {
-    if (!userAnswer.trim()) return
+    if (!canSubmitAnswer) return
     setJudging(true)
     try {
       const result = await verifyAnswer(question.question, question.answer, userAnswer.trim())
@@ -131,6 +132,28 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
       setJudging(false)
     }
   }
+
+  const handleAnswerInputKeyDown = (e) => {
+    if (e.key === 'Enter' && canSubmitAnswer) {
+      e.preventDefault()
+      handleSubmitAnswer()
+    }
+  }
+
+  // Keyboard shortcuts: Enter for next, Escape to close
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+      } else if (e.key === 'Enter' && revealed && isPlayMode) {
+        e.preventDefault()
+        handleNext()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [revealed, isPlayMode])
 
   const typeInfo = QUESTION_TYPES[question.type] || QUESTION_TYPES.straight
   const difficultyDots = question.difficulty || 3
@@ -255,7 +278,7 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
                 type="text"
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmitAnswer()}
+                onKeyDown={handleAnswerInputKeyDown}
                 placeholder="Type your answer..."
                 disabled={judging}
                 className="flex-1 glass rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-cyan-500/50 disabled:opacity-50 placeholder-gray-500"
@@ -263,7 +286,7 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
               />
               <button
                 onClick={handleSubmitAnswer}
-                disabled={judging || !userAnswer.trim()}
+                disabled={!canSubmitAnswer}
                 className="px-4 py-3 glass glow-border text-cyan-300 font-orbitron text-xs tracking-wider rounded-lg transition-all cursor-pointer disabled:opacity-50 hover:bg-cyan-900/20"
               >
                 {judging ? '...' : 'Submit'}
