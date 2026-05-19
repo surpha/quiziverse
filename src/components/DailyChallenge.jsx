@@ -43,6 +43,33 @@ export default function DailyChallenge({ userId, onClose }) {
     }
   }, [challenge, attempt, loading, startAttempt])
 
+  // Keyboard shortcuts: Enter for next/finish after verdict, Escape to close
+  const questionsCount = challenge?.questions?.length || 0
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+      } else if (e.key === 'Enter' && !e.shiftKey) {
+        const hasVerdict = verdict || attempt?.answers?.find(a => a.question_index === currentQ)
+        if (hasVerdict && questionsCount > 0) {
+          e.preventDefault()
+          if (currentQ < questionsCount - 1) {
+            setUserAnswer('')
+            setVerdict(null)
+            setRevealedHints([])
+            setShowBlast(false)
+            setCurrentQ(prev => prev + 1)
+          } else {
+            setShowCompleted(true)
+          }
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [verdict, currentQ, questionsCount, attempt])
+
   if (loading) {
     return (
       <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80">
@@ -116,28 +143,6 @@ export default function DailyChallenge({ userId, onClose }) {
     setShowBlast(false)
     setCurrentQ(prev => prev + 1)
   }
-
-  // Keyboard shortcuts: Enter for next/finish after verdict, Escape to close
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onClose()
-      } else if (e.key === 'Enter' && !e.shiftKey) {
-        const hasVerdict = verdict || attempt?.answers?.find(a => a.question_index === currentQ)
-        if (hasVerdict) {
-          e.preventDefault()
-          if (currentQ < questions.length - 1) {
-            handleNext()
-          } else {
-            setShowCompleted(true)
-          }
-        }
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [verdict, currentQ, questions.length, attempt])
 
   // Generate shareable text
   const generateShareText = () => {
