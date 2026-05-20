@@ -456,6 +456,10 @@ export default function DailyChallenge({ userId, onClose }) {
               <p className="text-gray-500 text-xs mt-2">
                 Answer: {question.answer}
               </p>
+              {/* Answer explanation */}
+              {question.answerExplanation && (
+                <p className="text-gray-400 text-xs mt-2 leading-relaxed">{question.answerExplanation}</p>
+              )}
               {/* Answer image/media */}
               {question.answerImageUrl && (
                 <div className="mt-3 rounded-lg overflow-hidden border border-cyan-500/20">

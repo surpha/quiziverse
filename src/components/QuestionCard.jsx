@@ -269,6 +269,10 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
               <p className="text-cyan-100 text-base leading-relaxed">
                 {question.answer}
               </p>
+              {/* Answer explanation */}
+              {question.answerExplanation && (
+                <p className="text-gray-400 text-sm mt-2 leading-relaxed">{question.answerExplanation}</p>
+              )}
               {/* Answer image/media */}
               {question.answerImageUrl && (
                 <div className="mt-3 rounded-lg overflow-hidden border border-cyan-500/20">

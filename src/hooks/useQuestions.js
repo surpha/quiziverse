@@ -41,6 +41,7 @@ export function useQuestions() {
           mediaUrl: row.media_url || null,
           answerImageUrl: row.answer_image_url || null,
           answerMediaUrl: row.answer_media_url || null,
+          answerExplanation: row.answer_explanation || null,
           difficulty: row.difficulty || 5,
           type: row.type || 'straight',
           hints: row.hints || null,
