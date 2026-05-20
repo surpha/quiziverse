@@ -4,6 +4,45 @@ import DOMAINS, { DOMAIN_KEYS } from '../utils/domainConfig'
 import QUESTION_TYPES from '../utils/questionTypes'
 import { generateHints, classifyQuestion, isLLMConfigured } from '../utils/llmJudge'
 
+function getYouTubeId(url) {
+  if (!url) return null
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([a-zA-Z0-9_-]{11})/)
+  return match ? match[1] : null
+}
+
+function AdminMediaPreview({ imageUrl, mediaUrl }) {
+  const ytId = getYouTubeId(mediaUrl)
+  if (!imageUrl && !mediaUrl) return null
+  return (
+    <div className="space-y-2">
+      {imageUrl && (
+        <div className="rounded-lg overflow-hidden border border-cyan-500/20 max-w-xs">
+          <img src={imageUrl} alt="Preview" className="w-full max-h-40 object-contain bg-black/30" />
+        </div>
+      )}
+      {ytId && (
+        <div className="rounded-lg overflow-hidden border border-gray-700/50 aspect-video max-w-xs">
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${ytId}`}
+            title="Video preview"
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      )}
+      {mediaUrl && !ytId && mediaUrl.match(/\.(mp3|wav|ogg|m4a)(\?|$)/i) && (
+        <audio controls src={mediaUrl} className="w-full max-w-xs" />
+      )}
+      {mediaUrl && !ytId && mediaUrl.match(/\.(mp4|webm|ogv)(\?|$)/i) && (
+        <div className="rounded-lg overflow-hidden border border-gray-700/50 max-w-xs">
+          <video controls src={mediaUrl} className="w-full max-h-40" />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Get today's date in IST as YYYY-MM-DD
 function getTodayIST() {
   const now = new Date()
@@ -78,6 +117,8 @@ export default function DailyChallengeAdmin() {
           question: q.question,
           answer: q.answer,
           source: q.source || `Daily Challenge ${challenge.challenge_date}`,
+          image_url: q.imageUrl || null,
+          media_url: q.mediaUrl || null,
           difficulty: q.difficulty || 5,
           type: q.type || 'straight',
           weights: q.weights || {},
@@ -355,6 +396,39 @@ export default function DailyChallengeAdmin() {
             className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
             rows={1}
           />
+
+          {/* Image & Media URL */}
+          <div className="flex gap-3 flex-wrap">
+            <div className="flex-1 min-w-[140px]">
+              <label className="text-gray-500 text-xs">Image URL</label>
+              <input
+                type="text" value={q.imageUrl || ''}
+                onChange={(e) => {
+                  const qs = [...questions]
+                  qs[idx] = { ...qs[idx], imageUrl: e.target.value }
+                  setQuestions(qs)
+                }}
+                className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50 block"
+                placeholder="https://..."
+              />
+            </div>
+            <div className="flex-1 min-w-[140px]">
+              <label className="text-gray-500 text-xs">Media URL (YouTube, audio, video)</label>
+              <input
+                type="text" value={q.mediaUrl || ''}
+                onChange={(e) => {
+                  const qs = [...questions]
+                  qs[idx] = { ...qs[idx], mediaUrl: e.target.value }
+                  setQuestions(qs)
+                }}
+                className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50 block"
+                placeholder="https://youtube.com/watch?v=..."
+              />
+            </div>
+          </div>
+
+          {/* Image/Media preview */}
+          <AdminMediaPreview imageUrl={q.imageUrl} mediaUrl={q.mediaUrl} />
 
           {/* Row: difficulty, type, source + AI classify */}
           <div className="flex gap-3 flex-wrap items-end">
@@ -720,6 +794,8 @@ export default function DailyChallengeAdmin() {
                             ))}
                           </div>
                         )}
+                        {/* Image/Media preview */}
+                        <AdminMediaPreview imageUrl={q.imageUrl} mediaUrl={q.mediaUrl} />
                       </div>
                     ))}
 
