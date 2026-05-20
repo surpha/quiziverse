@@ -2,6 +2,49 @@ import { useState, useEffect } from 'react'
 import { verifyAnswer, isLLMConfigured } from '../utils/llmJudge'
 import { useDailyChallenge } from '../hooks/useDailyChallenge'
 
+function getYouTubeId(url) {
+  if (!url) return null
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([a-zA-Z0-9_-]{11})/)
+  return match ? match[1] : null
+}
+
+function MediaEmbed({ url }) {
+  if (!url) return null
+  const ytId = getYouTubeId(url)
+  if (ytId) {
+    return (
+      <div className="mb-4 rounded-lg overflow-hidden border border-gray-700/50 aspect-video">
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${ytId}`}
+          title="Video"
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    )
+  }
+  if (url.match(/\.(mp3|wav|ogg|m4a)(\?|$)/i)) {
+    return (
+      <div className="mb-4">
+        <audio controls src={url} className="w-full" />
+      </div>
+    )
+  }
+  if (url.match(/\.(mp4|webm|ogv)(\?|$)/i)) {
+    return (
+      <div className="mb-4 rounded-lg overflow-hidden border border-gray-700/50">
+        <video controls src={url} className="w-full max-h-48" />
+      </div>
+    )
+  }
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="text-cyan-400 text-xs underline block mb-4">
+      🎬 Open media link
+    </a>
+  )
+}
+
 function ScoreBar({ score, maxPossible }) {
   const pct = maxPossible > 0 ? Math.round((score / maxPossible) * 100) : 0
   return (
@@ -319,6 +362,20 @@ export default function DailyChallenge({ userId, onClose }) {
           </div>
           <p className="text-white text-base leading-relaxed">{question.question}</p>
         </div>
+
+        {/* Image (if present) */}
+        {question.imageUrl && (
+          <div className="mb-4 rounded-lg overflow-hidden border border-cyan-500/20">
+            <img
+              src={question.imageUrl}
+              alt="Question visual"
+              className="w-full max-h-64 object-contain bg-black/30"
+            />
+          </div>
+        )}
+
+        {/* Media embed (YouTube, audio, video) */}
+        <MediaEmbed url={question.mediaUrl} />
 
         {/* Hints */}
         {question.hints && question.hints.length > 0 && (
