@@ -39,6 +39,8 @@ export function useQuestions() {
           source: row.source || null,
           imageUrl: row.image_url || null,
           mediaUrl: row.media_url || null,
+          answerImageUrl: row.answer_image_url || null,
+          answerMediaUrl: row.answer_media_url || null,
           difficulty: row.difficulty || 5,
           type: row.type || 'straight',
           hints: row.hints || null,

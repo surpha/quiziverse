@@ -52,6 +52,8 @@ function AdminPanel({ onClose }) {
       updatePayload.weights = editData.weights
       updatePayload.source = editData.source || null
       updatePayload.media_url = editData.media_url || null
+      updatePayload.answer_image_url = editData.answer_image_url || null
+      updatePayload.answer_media_url = editData.answer_media_url || null
       updatePayload.hints = editData.hints || null
     } else if (status === 'staging' && editData) {
       updatePayload.question = editData.question
@@ -61,6 +63,8 @@ function AdminPanel({ onClose }) {
       updatePayload.weights = editData.weights
       updatePayload.source = editData.source || null
       updatePayload.media_url = editData.media_url || null
+      updatePayload.answer_image_url = editData.answer_image_url || null
+      updatePayload.answer_media_url = editData.answer_media_url || null
       updatePayload.hints = editData.hints || null
     } else if (status === 'approved' && aiData) {
       updatePayload.difficulty = aiData.difficulty
@@ -315,6 +319,8 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
           weights: q.weights || {},
           source: q.source || '',
           media_url: q.media_url || '',
+          answer_image_url: q.answer_image_url || '',
+          answer_media_url: q.answer_media_url || '',
           hints: q.hints || ['', '', ''],
         }}))
       }
@@ -634,6 +640,8 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
           weights: q.weights || {},
           source: q.source || '',
           media_url: q.media_url || '',
+          answer_image_url: q.answer_image_url || '',
+          answer_media_url: q.answer_media_url || '',
           hints: q.hints || ['', '', ''],
         }}))
       }
@@ -948,6 +956,8 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, on
         weights: q.weights || {},
         source: q.source || '',
         media_url: q.media_url || '',
+        answer_image_url: q.answer_image_url || '',
+        answer_media_url: q.answer_media_url || '',
         hints: q.hints || ['', '', ''],
       }}))
     }

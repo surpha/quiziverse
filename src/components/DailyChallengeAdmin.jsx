@@ -119,6 +119,8 @@ export default function DailyChallengeAdmin() {
           source: q.source || `Daily Challenge ${challenge.challenge_date}`,
           image_url: q.imageUrl || null,
           media_url: q.mediaUrl || null,
+          answer_image_url: q.answerImageUrl || null,
+          answer_media_url: q.answerMediaUrl || null,
           difficulty: q.difficulty || 5,
           type: q.type || 'straight',
           weights: q.weights || {},
@@ -429,6 +431,39 @@ export default function DailyChallengeAdmin() {
 
           {/* Image/Media preview */}
           <AdminMediaPreview imageUrl={q.imageUrl} mediaUrl={q.mediaUrl} />
+
+          {/* Answer Image & Media URL */}
+          <div className="flex gap-3 flex-wrap">
+            <div className="flex-1 min-w-[140px]">
+              <label className="text-gray-500 text-xs">Answer Image URL</label>
+              <input
+                type="text" value={q.answerImageUrl || ''}
+                onChange={(e) => {
+                  const qs = [...questions]
+                  qs[idx] = { ...qs[idx], answerImageUrl: e.target.value }
+                  setQuestions(qs)
+                }}
+                className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50 block"
+                placeholder="https://... (shown on answer reveal)"
+              />
+            </div>
+            <div className="flex-1 min-w-[140px]">
+              <label className="text-gray-500 text-xs">Answer Media URL</label>
+              <input
+                type="text" value={q.answerMediaUrl || ''}
+                onChange={(e) => {
+                  const qs = [...questions]
+                  qs[idx] = { ...qs[idx], answerMediaUrl: e.target.value }
+                  setQuestions(qs)
+                }}
+                className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50 block"
+                placeholder="https://youtube.com/... (shown on answer reveal)"
+              />
+            </div>
+          </div>
+
+          {/* Answer media preview */}
+          <AdminMediaPreview imageUrl={q.answerImageUrl} mediaUrl={q.answerMediaUrl} />
 
           {/* Row: difficulty, type, source + AI classify */}
           <div className="flex gap-3 flex-wrap items-end">
