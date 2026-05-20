@@ -54,6 +54,7 @@ function AdminPanel({ onClose }) {
       updatePayload.media_url = editData.media_url || null
       updatePayload.answer_image_url = editData.answer_image_url || null
       updatePayload.answer_media_url = editData.answer_media_url || null
+      updatePayload.answer_explanation = editData.answer_explanation || null
       updatePayload.hints = editData.hints || null
     } else if (status === 'staging' && editData) {
       updatePayload.question = editData.question
@@ -65,6 +66,7 @@ function AdminPanel({ onClose }) {
       updatePayload.media_url = editData.media_url || null
       updatePayload.answer_image_url = editData.answer_image_url || null
       updatePayload.answer_media_url = editData.answer_media_url || null
+      updatePayload.answer_explanation = editData.answer_explanation || null
       updatePayload.hints = editData.hints || null
     } else if (status === 'approved' && aiData) {
       updatePayload.difficulty = aiData.difficulty
@@ -168,6 +170,9 @@ function AdminPanel({ onClose }) {
         weights: editData.weights,
         source: editData.source || null,
         media_url: editData.media_url || null,
+        answer_image_url: editData.answer_image_url || null,
+        answer_media_url: editData.answer_media_url || null,
+        answer_explanation: editData.answer_explanation || null,
         hints: editData.hints || null,
       })
       .eq('id', id)
@@ -321,6 +326,7 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
           media_url: q.media_url || '',
           answer_image_url: q.answer_image_url || '',
           answer_media_url: q.answer_media_url || '',
+          answer_explanation: q.answer_explanation || '',
           hints: q.hints || ['', '', ''],
         }}))
       }
@@ -443,6 +449,39 @@ function PendingTab({ pending, actionLoading, classifying, aiResults, verifying,
                     onChange={(e) => updateEdit(q.id, 'media_url', e.target.value)}
                     className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                     placeholder="https://www.youtube.com/watch?v=..."
+                  />
+                </div>
+                {/* Answer Image URL */}
+                <div>
+                  <label className="text-gray-400 text-xs block mb-1">Answer Image URL</label>
+                  <input
+                    type="url"
+                    value={edit.answer_image_url}
+                    onChange={(e) => updateEdit(q.id, 'answer_image_url', e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
+                    placeholder="https://... (shown on answer reveal)"
+                  />
+                </div>
+                {/* Answer Media URL */}
+                <div>
+                  <label className="text-gray-400 text-xs block mb-1">Answer Media URL</label>
+                  <input
+                    type="url"
+                    value={edit.answer_media_url}
+                    onChange={(e) => updateEdit(q.id, 'answer_media_url', e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
+                    placeholder="https://youtube.com/... (shown on answer reveal)"
+                  />
+                </div>
+                {/* Answer Explanation */}
+                <div>
+                  <label className="text-gray-400 text-xs block mb-1">Answer Explanation</label>
+                  <textarea
+                    value={edit.answer_explanation}
+                    onChange={(e) => updateEdit(q.id, 'answer_explanation', e.target.value)}
+                    rows={2}
+                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50 resize-none"
+                    placeholder="Explanation shown after answer reveal..."
                   />
                 </div>
                 {/* Domain weights */}
@@ -642,6 +681,7 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
           media_url: q.media_url || '',
           answer_image_url: q.answer_image_url || '',
           answer_media_url: q.answer_media_url || '',
+          answer_explanation: q.answer_explanation || '',
           hints: q.hints || ['', '', ''],
         }}))
       }
@@ -756,6 +796,39 @@ function StagingTab({ staging, actionLoading, classifying, aiResults, verifying,
                     onChange={(e) => updateEdit(q.id, 'media_url', e.target.value)}
                     className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                     placeholder="https://www.youtube.com/watch?v=..."
+                  />
+                </div>
+                {/* Answer Image URL */}
+                <div>
+                  <label className="text-gray-400 text-xs block mb-1">Answer Image URL</label>
+                  <input
+                    type="url"
+                    value={edit.answer_image_url}
+                    onChange={(e) => updateEdit(q.id, 'answer_image_url', e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
+                    placeholder="https://... (shown on answer reveal)"
+                  />
+                </div>
+                {/* Answer Media URL */}
+                <div>
+                  <label className="text-gray-400 text-xs block mb-1">Answer Media URL</label>
+                  <input
+                    type="url"
+                    value={edit.answer_media_url}
+                    onChange={(e) => updateEdit(q.id, 'answer_media_url', e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
+                    placeholder="https://youtube.com/... (shown on answer reveal)"
+                  />
+                </div>
+                {/* Answer Explanation */}
+                <div>
+                  <label className="text-gray-400 text-xs block mb-1">Answer Explanation</label>
+                  <textarea
+                    value={edit.answer_explanation}
+                    onChange={(e) => updateEdit(q.id, 'answer_explanation', e.target.value)}
+                    rows={2}
+                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50 resize-none"
+                    placeholder="Explanation shown after answer reveal..."
                   />
                 </div>
                 {/* Hints */}
@@ -958,6 +1031,7 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, on
         media_url: q.media_url || '',
         answer_image_url: q.answer_image_url || '',
         answer_media_url: q.answer_media_url || '',
+        answer_explanation: q.answer_explanation || '',
         hints: q.hints || ['', '', ''],
       }}))
     }
@@ -1160,6 +1234,36 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, on
                         onChange={(e) => updateEdit(q.id, 'media_url', e.target.value)}
                         className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
                         placeholder="https://www.youtube.com/watch?v=..."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 text-xs block mb-1">Answer Image URL</label>
+                      <input
+                        type="url"
+                        value={edit.answer_image_url}
+                        onChange={(e) => updateEdit(q.id, 'answer_image_url', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
+                        placeholder="https://... (shown on answer reveal)"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 text-xs block mb-1">Answer Media URL</label>
+                      <input
+                        type="url"
+                        value={edit.answer_media_url}
+                        onChange={(e) => updateEdit(q.id, 'answer_media_url', e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50"
+                        placeholder="https://youtube.com/... (shown on answer reveal)"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 text-xs block mb-1">Answer Explanation</label>
+                      <textarea
+                        value={edit.answer_explanation}
+                        onChange={(e) => updateEdit(q.id, 'answer_explanation', e.target.value)}
+                        rows={2}
+                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50 resize-none"
+                        placeholder="Explanation shown after answer reveal..."
                       />
                     </div>
                     <div>

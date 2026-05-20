@@ -18,6 +18,7 @@ function ContributeForm({ onClose, onSubmitted }) {
   const [imageMode, setImageMode] = useState('upload') // 'upload' | 'url'
   const [answerImageUrl, setAnswerImageUrl] = useState('')
   const [answerMediaUrl, setAnswerMediaUrl] = useState('')
+  const [answerExplanation, setAnswerExplanation] = useState('')
   const [difficulty, setDifficulty] = useState(5)
   const [questionType, setQuestionType] = useState('straight')
   const [hints, setHints] = useState(['', '', ''])
@@ -138,6 +139,7 @@ function ContributeForm({ onClose, onSubmitted }) {
           media_url: mediaUrl.trim() || null,
           answer_image_url: answerImageUrl.trim() || null,
           answer_media_url: answerMediaUrl.trim() || null,
+          answer_explanation: answerExplanation.trim() || null,
           difficulty,
           type: questionType,
           hints: hints.filter(h => h.trim()) .length > 0 ? hints.filter(h => h.trim()) : null,
@@ -392,6 +394,19 @@ function ContributeForm({ onClose, onSubmitted }) {
                 placeholder="https://www.youtube.com/watch?v=... (shown after answer reveal)"
               />
               <p className="text-gray-600 text-xs mt-1">Video/audio shown after the answer is revealed</p>
+            </div>
+
+            {/* Answer Explanation */}
+            <div>
+              <label className="text-gray-300 text-sm block mb-1">Answer Explanation (optional)</label>
+              <textarea
+                value={answerExplanation}
+                onChange={(e) => setAnswerExplanation(e.target.value)}
+                rows={2}
+                className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
+                placeholder="Explain the answer, add context or fun facts..."
+              />
+              <p className="text-gray-600 text-xs mt-1">Shown after the answer is revealed to give more context</p>
             </div>
 
             {/* Domain weights */}

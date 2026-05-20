@@ -121,6 +121,7 @@ export default function DailyChallengeAdmin() {
           media_url: q.mediaUrl || null,
           answer_image_url: q.answerImageUrl || null,
           answer_media_url: q.answerMediaUrl || null,
+          answer_explanation: q.answerExplanation || null,
           difficulty: q.difficulty || 5,
           type: q.type || 'straight',
           weights: q.weights || {},
@@ -464,6 +465,22 @@ export default function DailyChallengeAdmin() {
 
           {/* Answer media preview */}
           <AdminMediaPreview imageUrl={q.answerImageUrl} mediaUrl={q.answerMediaUrl} />
+
+          {/* Answer Explanation */}
+          <div>
+            <label className="text-gray-500 text-xs">Answer Explanation</label>
+            <textarea
+              value={q.answerExplanation || ''}
+              onChange={(e) => {
+                const qs = [...questions]
+                qs[idx] = { ...qs[idx], answerExplanation: e.target.value }
+                setQuestions(qs)
+              }}
+              rows={2}
+              className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500/50 block resize-none"
+              placeholder="Explanation shown after answer reveal..."
+            />
+          </div>
 
           {/* Row: difficulty, type, source + AI classify */}
           <div className="flex gap-3 flex-wrap items-end">
@@ -831,6 +848,9 @@ export default function DailyChallengeAdmin() {
                         )}
                         {/* Image/Media preview */}
                         <AdminMediaPreview imageUrl={q.imageUrl} mediaUrl={q.mediaUrl} />
+                        {q.answerExplanation && (
+                          <p className="text-gray-500 text-xs mt-1 italic">📝 {q.answerExplanation}</p>
+                        )}
                       </div>
                     ))}
 
