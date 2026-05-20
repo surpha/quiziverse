@@ -139,7 +139,7 @@ export default function DailyChallenge({ userId, onClose }) {
   const questions = challenge.questions
   const maxPossible = questions.reduce((sum, q) => sum + (q.max_score || 10), 0)
   const question = questions[currentQ]
-  const isCompleted = attempt?.completed || showCompleted
+  const isCompleted = showCompleted || (attempt?.completed && !verdict)
 
   // Calculate score lost by hints for current question
   const hintCostTotal = revealedHints.reduce((sum, idx) => sum + (question.hints[idx]?.cost || 1), 0)
@@ -456,6 +456,13 @@ export default function DailyChallenge({ userId, onClose }) {
               <p className="text-gray-500 text-xs mt-2">
                 Answer: {question.answer}
               </p>
+              {/* Answer image/media */}
+              {question.answerImageUrl && (
+                <div className="mt-3 rounded-lg overflow-hidden border border-cyan-500/20">
+                  <img src={question.answerImageUrl} alt="Answer visual" className="w-full max-h-48 object-contain bg-black/30" />
+                </div>
+              )}
+              {question.answerMediaUrl && <MediaEmbed url={question.answerMediaUrl} />}
             </div>
 
             {/* Next / Finish button — shown after any verdict */}
