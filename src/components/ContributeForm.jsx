@@ -16,6 +16,8 @@ function ContributeForm({ onClose, onSubmitted }) {
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [imageMode, setImageMode] = useState('upload') // 'upload' | 'url'
+  const [answerImageUrl, setAnswerImageUrl] = useState('')
+  const [answerMediaUrl, setAnswerMediaUrl] = useState('')
   const [difficulty, setDifficulty] = useState(5)
   const [questionType, setQuestionType] = useState('straight')
   const [hints, setHints] = useState(['', '', ''])
@@ -134,6 +136,8 @@ function ContributeForm({ onClose, onSubmitted }) {
           source: source.trim() || null,
           image_url: finalImageUrl,
           media_url: mediaUrl.trim() || null,
+          answer_image_url: answerImageUrl.trim() || null,
+          answer_media_url: answerMediaUrl.trim() || null,
           difficulty,
           type: questionType,
           hints: hints.filter(h => h.trim()) .length > 0 ? hints.filter(h => h.trim()) : null,
@@ -362,6 +366,32 @@ function ContributeForm({ onClose, onSubmitted }) {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Answer Image URL */}
+            <div>
+              <label className="text-gray-300 text-sm block mb-1">Answer Image URL (optional)</label>
+              <input
+                type="url"
+                value={answerImageUrl}
+                onChange={(e) => setAnswerImageUrl(e.target.value)}
+                className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
+                placeholder="https://i.imgur.com/answer-image.jpg"
+              />
+              <p className="text-gray-600 text-xs mt-1">Image shown after the answer is revealed</p>
+            </div>
+
+            {/* Answer Media URL */}
+            <div>
+              <label className="text-gray-300 text-sm block mb-1">Answer YouTube / Media URL (optional)</label>
+              <input
+                type="url"
+                value={answerMediaUrl}
+                onChange={(e) => setAnswerMediaUrl(e.target.value)}
+                className="w-full glass border border-gray-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
+                placeholder="https://www.youtube.com/watch?v=... (shown after answer reveal)"
+              />
+              <p className="text-gray-600 text-xs mt-1">Video/audio shown after the answer is revealed</p>
             </div>
 
             {/* Domain weights */}
