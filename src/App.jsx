@@ -308,8 +308,11 @@ function App() {
         />
       </Canvas>
 
-      <Legend selectedDomains={selectedDomains} onToggleDomain={handleToggleDomain} />
-      <TypeFilter selectedTypes={selectedTypes} onToggleType={handleToggleType} />
+      {/* Desktop: Domains + Types stacked left-side — collapsible, never overlap */}
+      <div className="absolute top-4 left-4 z-20 hidden md:flex flex-col gap-2 max-h-[calc(100vh-2rem)] overflow-y-auto">
+        <Legend selectedDomains={selectedDomains} onToggleDomain={handleToggleDomain} />
+        <TypeFilter selectedTypes={selectedTypes} onToggleType={handleToggleType} />
+      </div>
 
       {/* Data source indicator */}
       <div className="absolute bottom-4 left-4 z-10">
