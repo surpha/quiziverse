@@ -29,6 +29,9 @@ create table if not exists event_attempts (
   current_index int not null default 0,
   started_at timestamptz default now(),
   completed_at timestamptz,
+  rating_experience smallint,            -- 1-5 star rating for overall experience
+  rating_questions smallint,             -- 1-5 star rating for question quality
+  feedback text,                         -- Optional free-text feedback
   unique(user_id, event_id)
 );
 

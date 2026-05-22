@@ -141,6 +141,28 @@ export function useEvent(slug, userId) {
     return data
   }, [attempt, event])
 
+  const saveFeedback = useCallback(async (ratingExperience, ratingQuestions, feedback) => {
+    if (!supabase || !attempt) return null
+
+    const { data, error: err } = await supabase
+      .from('event_attempts')
+      .update({
+        rating_experience: ratingExperience,
+        rating_questions: ratingQuestions,
+        feedback: feedback || null,
+      })
+      .eq('id', attempt.id)
+      .select()
+      .single()
+
+    if (err) {
+      setError(err.message)
+      return null
+    }
+    setAttempt(data)
+    return data
+  }, [attempt])
+
   return {
     event,
     attempt,
@@ -149,6 +171,7 @@ export function useEvent(slug, userId) {
     error,
     startAttempt,
     saveAnswer,
+    saveFeedback,
     refetch: fetchEvent,
   }
 }

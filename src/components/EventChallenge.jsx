@@ -20,7 +20,7 @@ function ScoreBar({ score, maxPossible }) {
 }
 
 export default function EventChallenge({ slug, userId, onClose }) {
-  const { event, attempt, leaderboard, loading, error, startAttempt, saveAnswer, refetch } = useEvent(slug, userId)
+  const { event, attempt, leaderboard, loading, error, startAttempt, saveAnswer, saveFeedback, refetch } = useEvent(slug, userId)
   const [currentQ, setCurrentQ] = useState(0)
   const [userAnswer, setUserAnswer] = useState('')
   const [verifying, setVerifying] = useState(false)
@@ -28,6 +28,10 @@ export default function EventChallenge({ slug, userId, onClose }) {
   const [revealedHints, setRevealedHints] = useState([])
   const [showBlast, setShowBlast] = useState(false)
   const [initialized, setInitialized] = useState(false)
+  const [ratingExperience, setRatingExperience] = useState(attempt?.rating_experience || 0)
+  const [ratingQuestions, setRatingQuestions] = useState(attempt?.rating_questions || 0)
+  const [feedbackText, setFeedbackText] = useState(attempt?.feedback || '')
+  const [feedbackSaved, setFeedbackSaved] = useState(!!(attempt?.rating_experience))
   const [showCompleted, setShowCompleted] = useState(false)
 
   // Sync current question index from attempt
@@ -36,6 +40,12 @@ export default function EventChallenge({ slug, userId, onClose }) {
       setCurrentQ(attempt.completed ? attempt.answers.length - 1 : attempt.current_index)
       setInitialized(true)
       if (attempt.completed) setShowCompleted(true)
+      if (attempt.rating_experience) {
+        setRatingExperience(attempt.rating_experience)
+        setRatingQuestions(attempt.rating_questions || 0)
+        setFeedbackText(attempt.feedback || '')
+        setFeedbackSaved(true)
+      }
     }
   }, [attempt, initialized])
 
@@ -301,6 +311,55 @@ export default function EventChallenge({ slug, userId, onClose }) {
                     <span className="text-amber-300 text-xs font-orbitron">{totalScore}/{maxPossible}</span>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* Feedback / Rating */}
+          <div className="mb-5 border-t border-gray-700/50 pt-4">
+            <h3 className="text-cyan-300 text-xs uppercase tracking-wider mb-3 font-medium">📝 Rate this event</h3>
+            {feedbackSaved ? (
+              <p className="text-emerald-400 text-xs text-center py-2">Thanks for your feedback! ✓</p>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400 text-xs">Experience</span>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <button key={n} onClick={() => setRatingExperience(n)}
+                        className={`text-lg cursor-pointer transition-transform hover:scale-125 ${n <= ratingExperience ? 'text-amber-400' : 'text-gray-600'}`}
+                      >★</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400 text-xs">Questions</span>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <button key={n} onClick={() => setRatingQuestions(n)}
+                        className={`text-lg cursor-pointer transition-transform hover:scale-125 ${n <= ratingQuestions ? 'text-amber-400' : 'text-gray-600'}`}
+                      >★</button>
+                    ))}
+                  </div>
+                </div>
+                <textarea
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder="Any feedback? (optional)"
+                  className="w-full bg-gray-800/50 border border-gray-700/50 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 resize-none focus:outline-none focus:border-cyan-500/50"
+                  rows={2}
+                />
+                <button
+                  onClick={async () => {
+                    if (ratingExperience === 0 || ratingQuestions === 0) return
+                    await saveFeedback(ratingExperience, ratingQuestions, feedbackText)
+                    setFeedbackSaved(true)
+                  }}
+                  disabled={ratingExperience === 0 || ratingQuestions === 0}
+                  className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs rounded-full cursor-pointer transition-colors font-medium"
+                >
+                  Submit Feedback
+                </button>
               </div>
             )}
           </div>
