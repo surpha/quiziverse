@@ -12,6 +12,8 @@ import PlayFilters from './components/PlayFilters'
 import ResetPassword from './components/ResetPassword'
 import OnboardingTour from './components/OnboardingTour'
 import DailyChallenge from './components/DailyChallenge'
+import UserProfile from './components/UserProfile'
+import UsernameSetup from './components/UsernameSetup'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { useDailyChallenge } from './hooks/useDailyChallenge'
@@ -86,6 +88,8 @@ function App() {
   const [showCredits, setShowCredits] = useState(false)
   const [showTour, setShowTour] = useState(false)
   const [showDaily, setShowDaily] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
+  const [localProfile, setLocalProfile] = useState(null)
   const [selectedDomains, setSelectedDomains] = useState([])
   const [selectedTypes, setSelectedTypes] = useState([])
   const spinTimeoutRef = useRef(null)
@@ -368,12 +372,7 @@ function App() {
               ⚙ Admin
             </button>
           )}
-          <button
-            onClick={() => signOut()}
-            className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg transition-colors cursor-pointer"
-          >
-            Sign Out
-          </button>
+
         </div>
         {/* Mobile: How to Play + Admin below sign out */}
         <div className="md:hidden flex items-center gap-1.5">
@@ -392,10 +391,17 @@ function App() {
             </button>
           )}
         </div>
-        <span className="text-gray-500 text-xs flex items-center gap-1.5">
-          <span className="text-sm">{profile?.avatar_emoji || '✦'}</span>
-          {profile?.display_name || user.email}
-        </span>
+        <button
+          className="w-9 h-9 rounded-full overflow-hidden cursor-pointer ring-2 ring-transparent hover:ring-cyan-500/50 transition-all flex items-center justify-center bg-gray-800/80"
+          onClick={() => setShowProfile(true)}
+          title="Profile"
+        >
+          {user?.user_metadata?.avatar_url ? (
+            <img src={user.user_metadata.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            <span className="text-lg">{(localProfile || profile)?.avatar_emoji || '✦'}</span>
+          )}
+        </button>
       </div>
 
       {/* Bottom center actions */}
@@ -518,6 +524,24 @@ function App() {
             sessionStorage.setItem(`daily-dismissed-${todayChallenge.challenge_date}`, '1')
           }
         }} />
+      )}
+
+      {showProfile && (
+        <UserProfile
+          user={user}
+          profile={localProfile || profile}
+          onClose={() => setShowProfile(false)}
+          onProfileUpdate={(updated) => setLocalProfile(updated)}
+          onSignOut={signOut}
+        />
+      )}
+
+      {/* Username setup — shown once for users without a username */}
+      {user && !authLoading && (localProfile || profile) && !(localProfile || profile)?.username && (
+        <UsernameSetup
+          user={user}
+          onComplete={(updates) => setLocalProfile(prev => ({ ...(prev || profile), ...updates }))}
+        />
       )}
 
       {showPlayFilters && (
