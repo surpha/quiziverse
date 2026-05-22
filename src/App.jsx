@@ -89,15 +89,25 @@ function App() {
   const [selectedDomains, setSelectedDomains] = useState([])
   const [selectedTypes, setSelectedTypes] = useState([])
   const spinTimeoutRef = useRef(null)
+  const previousUserRef = useRef(null)
+  const dailyShownOnLoginRef = useRef(false)
 
-  // Auto-open daily challenge once per day if user hasn't completed it
+  // Auto-open daily challenge ONLY on login if user hasn't completed it
   const { challenge: todayChallenge, attempt: todayAttempt, loading: dailyLoading } = useDailyChallenge(user?.id)
   useEffect(() => {
-    if (!dailyLoading && user && todayChallenge && !todayAttempt?.completed) {
-      const dismissKey = `daily-dismissed-${todayChallenge.challenge_date}`
-      if (!sessionStorage.getItem(dismissKey)) {
-        setShowDaily(true)
-      }
+    // Check if user just logged in (user went from null/undefined to a valid user)
+    const userJustLoggedIn = !previousUserRef.current && user
+    previousUserRef.current = user
+
+    // Show daily challenge only on login and if unattempted
+    if (userJustLoggedIn && !dailyLoading && todayChallenge && !todayAttempt?.completed && !dailyShownOnLoginRef.current) {
+      setShowDaily(true)
+      dailyShownOnLoginRef.current = true
+    }
+
+    // Reset the flag when user logs out
+    if (!user) {
+      dailyShownOnLoginRef.current = false
     }
   }, [dailyLoading, user, todayChallenge, todayAttempt])
 
@@ -308,8 +318,11 @@ function App() {
         />
       </Canvas>
 
-      <Legend selectedDomains={selectedDomains} onToggleDomain={handleToggleDomain} />
-      <TypeFilter selectedTypes={selectedTypes} onToggleType={handleToggleType} />
+      {/* Desktop: Domains + Types stacked left-side — collapsible, never overlap */}
+      <div className="absolute top-4 left-4 z-20 hidden md:flex flex-col gap-2 max-h-[calc(100vh-2rem)] overflow-y-auto">
+        <Legend selectedDomains={selectedDomains} onToggleDomain={handleToggleDomain} />
+        <TypeFilter selectedTypes={selectedTypes} onToggleType={handleToggleType} />
+      </div>
 
       {/* Data source indicator */}
       <div className="absolute bottom-4 left-4 z-10">

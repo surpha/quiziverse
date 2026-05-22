@@ -1,14 +1,22 @@
+import { useState } from 'react'
 import DOMAINS from '../utils/domainConfig'
 
 function Legend({ selectedDomains = [], onToggleDomain }) {
   const isInteractive = !!onToggleDomain
+  const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <div data-tour="legend" className="absolute top-4 left-4 z-20 hidden md:block">
-      {/* Desktop: always visible */}
-      <div className="glass glow-border rounded-xl p-4 max-h-[80vh] overflow-y-auto">
-        <h3 className="text-white text-sm font-orbitron tracking-wider mb-3 uppercase">Domains</h3>
-        <div className="space-y-2">
+    <div data-tour="legend" className="glass glow-border rounded-xl overflow-hidden">
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-white text-sm font-orbitron tracking-wider uppercase cursor-pointer hover:bg-white/5 transition-colors"
+      >
+        <span>Domains</span>
+        <span className="text-gray-400 text-xs">{collapsed ? '▼' : '▲'}</span>
+      </button>
+      {!collapsed && (
+        <div className="px-4 pb-4 max-h-[40vh] overflow-y-auto">
+          <div className="space-y-2">
           {Object.entries(DOMAINS).map(([key, { label, color }]) => {
             const active = selectedDomains.length === 0 || selectedDomains.includes(key)
             return (
@@ -25,16 +33,17 @@ function Legend({ selectedDomains = [], onToggleDomain }) {
               </div>
             )
           })}
+          </div>
+          {selectedDomains.length > 0 && (
+            <button
+              onClick={() => onToggleDomain?.('__clear__')}
+              className="mt-3 text-gray-500 hover:text-cyan-400 text-[10px] uppercase tracking-wider cursor-pointer transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
-        {selectedDomains.length > 0 && (
-          <button
-            onClick={() => onToggleDomain?.('__clear__')}
-            className="mt-3 text-gray-500 hover:text-cyan-400 text-[10px] uppercase tracking-wider cursor-pointer transition-colors"
-          >
-            Clear filters
-          </button>
-        )}
-      </div>
+      )}
     </div>
   )
 }

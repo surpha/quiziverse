@@ -1,12 +1,21 @@
+import { useState } from 'react'
 import QUESTION_TYPES from '../utils/questionTypes'
 
 function TypeFilter({ selectedTypes = [], onToggleType }) {
+  const [collapsed, setCollapsed] = useState(false)
+
   return (
-    <div className="absolute bottom-10 left-4 z-20 hidden md:block">
-      {/* Desktop: always visible */}
-      <div className="glass glow-border rounded-xl p-4">
-        <h3 className="text-white text-sm font-orbitron tracking-wider mb-3 uppercase">Types</h3>
-        <div className="space-y-2">
+    <div className="glass glow-border rounded-xl overflow-hidden">
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-white text-sm font-orbitron tracking-wider uppercase cursor-pointer hover:bg-white/5 transition-colors"
+      >
+        <span>Types</span>
+        <span className="text-gray-400 text-xs">{collapsed ? '▼' : '▲'}</span>
+      </button>
+      {!collapsed && (
+        <div className="px-4 pb-4 max-h-[40vh] overflow-y-auto">
+          <div className="space-y-2">
           {Object.entries(QUESTION_TYPES).map(([key, { label, icon }]) => {
             const active = selectedTypes.length === 0 || selectedTypes.includes(key)
             return (
@@ -20,16 +29,17 @@ function TypeFilter({ selectedTypes = [], onToggleType }) {
               </div>
             )
           })}
+          </div>
+          {selectedTypes.length > 0 && (
+            <button
+              onClick={() => onToggleType?.('__clear__')}
+              className="mt-3 text-gray-500 hover:text-cyan-400 text-[10px] uppercase tracking-wider cursor-pointer transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
-        {selectedTypes.length > 0 && (
-          <button
-            onClick={() => onToggleType?.('__clear__')}
-            className="mt-3 text-gray-500 hover:text-cyan-400 text-[10px] uppercase tracking-wider cursor-pointer transition-colors"
-          >
-            Clear filters
-          </button>
-        )}
-      </div>
+      )}
     </div>
   )
 }
