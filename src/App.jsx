@@ -15,6 +15,8 @@ import DailyChallenge from './components/DailyChallenge'
 import UserProfile from './components/UserProfile'
 import UsernameSetup from './components/UsernameSetup'
 import AnalyticsDashboard from './components/AnalyticsDashboard'
+import EventChallenge from './components/EventChallenge'
+import EventAdmin from './components/EventAdmin'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { useDailyChallenge } from './hooks/useDailyChallenge'
@@ -81,6 +83,8 @@ function App() {
   const [showAuth, setShowAuth] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
+  const [showEventAdmin, setShowEventAdmin] = useState(false)
+  const [eventSlug, setEventSlug] = useState(null)
   const [showPlayFilters, setShowPlayFilters] = useState(false)
   const [playFilters, setPlayFilters] = useState(null) // { domains, difficultyMin, difficultyMax, types }
   const [isSpinning, setIsSpinning] = useState(false)
@@ -98,6 +102,20 @@ function App() {
   const previousUserRef = useRef(null)
   const dailyShownOnLoginRef = useRef(false)
 
+  // Detect ?event=slug in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ev = params.get('event')
+    if (ev) setEventSlug(ev)
+  }, [])
+
+  // If event URL detected but user not signed in, show auth
+  useEffect(() => {
+    if (eventSlug && !user && !authLoading) {
+      setShowAuth(true)
+    }
+  }, [eventSlug, user, authLoading])
+
   // Auto-open daily challenge ONLY on login if user hasn't completed it
   const { challenge: todayChallenge, attempt: todayAttempt, loading: dailyLoading } = useDailyChallenge(user?.id)
   useEffect(() => {
@@ -105,8 +123,8 @@ function App() {
     const userJustLoggedIn = !previousUserRef.current && user
     previousUserRef.current = user
 
-    // Show daily challenge only on login and if unattempted
-    if (userJustLoggedIn && !dailyLoading && todayChallenge && !todayAttempt?.completed && !dailyShownOnLoginRef.current) {
+    // Show daily challenge only on login and if unattempted (but NOT when event URL is active)
+    if (userJustLoggedIn && !dailyLoading && todayChallenge && !todayAttempt?.completed && !dailyShownOnLoginRef.current && !eventSlug) {
       setShowDaily(true)
       dailyShownOnLoginRef.current = true
     }
@@ -382,6 +400,14 @@ function App() {
               📊 Analytics
             </button>
           )}
+          {isAdmin && (
+            <button
+              onClick={() => setShowEventAdmin(true)}
+              className="px-3 py-1.5 bg-purple-600/80 hover:bg-purple-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer hidden md:block"
+            >
+              🎯 Events
+            </button>
+          )}
 
         </div>
         {/* Mobile: How to Play + Admin below sign out */}
@@ -406,6 +432,14 @@ function App() {
               className="px-2.5 py-1 bg-emerald-600/80 hover:bg-emerald-500 text-white text-[10px] font-medium rounded-lg transition-colors cursor-pointer"
             >
               📊
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => setShowEventAdmin(true)}
+              className="px-2.5 py-1 bg-purple-600/80 hover:bg-purple-500 text-white text-[10px] font-medium rounded-lg transition-colors cursor-pointer"
+            >
+              🎯
             </button>
           )}
         </div>
@@ -533,6 +567,17 @@ function App() {
 
       {showAnalytics && (
         <AnalyticsDashboard onClose={() => setShowAnalytics(false)} />
+      )}
+
+      {showEventAdmin && (
+        <EventAdmin onClose={() => setShowEventAdmin(false)} />
+      )}
+
+      {eventSlug && user && (
+        <EventChallenge slug={eventSlug} userId={user.id} onClose={() => {
+          setEventSlug(null)
+          window.history.replaceState({}, '', window.location.pathname)
+        }} />
       )}
 
       {showTour && (
