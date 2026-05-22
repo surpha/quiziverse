@@ -14,6 +14,7 @@ import OnboardingTour from './components/OnboardingTour'
 import DailyChallenge from './components/DailyChallenge'
 import UserProfile from './components/UserProfile'
 import UsernameSetup from './components/UsernameSetup'
+import AnalyticsDashboard from './components/AnalyticsDashboard'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { useDailyChallenge } from './hooks/useDailyChallenge'
@@ -79,6 +80,7 @@ function App() {
   const [showContribute, setShowContribute] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
+  const [showAnalytics, setShowAnalytics] = useState(false)
   const [showPlayFilters, setShowPlayFilters] = useState(false)
   const [playFilters, setPlayFilters] = useState(null) // { domains, difficultyMin, difficultyMax, types }
   const [isSpinning, setIsSpinning] = useState(false)
@@ -372,6 +374,14 @@ function App() {
               ⚙ Admin
             </button>
           )}
+          {isAdmin && (
+            <button
+              onClick={() => setShowAnalytics(true)}
+              className="px-3 py-1.5 bg-emerald-600/80 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer hidden md:block"
+            >
+              📊 Analytics
+            </button>
+          )}
 
         </div>
         {/* Mobile: How to Play + Admin below sign out */}
@@ -388,6 +398,14 @@ function App() {
               className="px-2.5 py-1 bg-amber-600/80 hover:bg-amber-500 text-white text-[10px] font-medium rounded-lg transition-colors cursor-pointer"
             >
               ⚙ Admin
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => setShowAnalytics(true)}
+              className="px-2.5 py-1 bg-emerald-600/80 hover:bg-emerald-500 text-white text-[10px] font-medium rounded-lg transition-colors cursor-pointer"
+            >
+              📊
             </button>
           )}
         </div>
@@ -511,6 +529,10 @@ function App() {
 
       {showAdmin && (
         <AdminPanel onClose={() => { setShowAdmin(false); refetch() }} />
+      )}
+
+      {showAnalytics && (
+        <AnalyticsDashboard onClose={() => setShowAnalytics(false)} />
       )}
 
       {showTour && (

@@ -142,7 +142,7 @@ export default function DailyChallenge({ userId, onClose }) {
   const isCompleted = showCompleted || (attempt?.completed && !verdict)
 
   // Calculate score lost by hints for current question
-  const hintCostTotal = revealedHints.reduce((sum, idx) => sum + (question.hints[idx]?.cost || 1), 0)
+  const hintCostTotal = revealedHints.reduce((sum, idx) => sum + (question?.hints?.[idx]?.cost || 1), 0)
   const questionMaxScore = question?.max_score || 10
 
   const handleRevealHint = (hintIdx) => {
@@ -186,6 +186,7 @@ export default function DailyChallenge({ userId, onClose }) {
     setShowBlast(false)
     setCurrentQ(prev => prev + 1)
   }
+
 
   // Generate shareable text
   const generateShareText = () => {
