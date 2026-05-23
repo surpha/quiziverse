@@ -16,8 +16,12 @@ function AdminMediaPreview({ imageUrl, mediaUrl }) {
   return (
     <div className="space-y-2">
       {imageUrl && (
-        <div className="rounded-lg overflow-hidden border border-cyan-500/20 max-w-xs">
-          <img src={imageUrl} alt="Preview" className="w-full max-h-40 object-contain bg-black/30" />
+        <div className="flex gap-2 overflow-x-auto max-w-sm">
+          {imageUrl.split(',').map((url, i) => (
+            <div key={i} className="rounded-lg overflow-hidden border border-cyan-500/20 flex-shrink-0">
+              <img src={url.trim()} alt={`Preview ${i + 1}`} className="h-32 max-h-32 object-contain bg-black/30" />
+            </div>
+          ))}
         </div>
       )}
       {ytId && (

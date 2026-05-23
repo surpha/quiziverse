@@ -364,14 +364,12 @@ export default function DailyChallenge({ userId, onClose }) {
           <p className="text-white text-base leading-relaxed">{question.question}</p>
         </div>
 
-        {/* Image (if present) */}
+        {/* Image(s) - supports comma-separated URLs */}
         {question.imageUrl && (
-          <div className="mb-4 rounded-lg overflow-hidden border border-cyan-500/20">
-            <img
-              src={question.imageUrl}
-              alt="Question visual"
-              className="w-full max-h-64 object-contain bg-black/30"
-            />
+          <div className="mb-4 h-48 rounded-lg border border-cyan-500/20 bg-black/30 overflow-x-auto overflow-y-hidden flex items-center gap-2 px-2">
+            {question.imageUrl.split(',').map((url, i) => (
+              <img key={i} src={url.trim()} alt={`Question visual ${i + 1}`} className="h-full max-h-44 object-contain flex-shrink-0 rounded" />
+            ))}
           </div>
         )}
 
