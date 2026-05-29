@@ -9,9 +9,16 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "cap:sync": "vite build && cap sync",
+    "cap:ios": "vite build && cap sync ios && cap open ios",
+    "cap:android": "vite build && cap sync android && cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/ios": "^8.3.4",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@supabase/supabase-js": "^2.105.4",
