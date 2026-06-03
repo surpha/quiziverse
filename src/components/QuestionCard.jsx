@@ -97,7 +97,7 @@ function CosmicBlast() {
   )
 }
 
-function QuestionCard({ question, onClose, onNext, isPlayMode }) {
+function QuestionCard({ question, onClose, onNext, isPlayMode, attemptVerdict = null, onRecordAttempt }) {
   const [revealed, setRevealed] = useState(false)
   const [userAnswer, setUserAnswer] = useState('')
   const [verdict, setVerdict] = useState(null) // { verdict, explanation }
@@ -123,6 +123,10 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
       setVerdict(result)
       setRevealed(true)
       if (result.verdict === 'correct') setShowBlast(true)
+      // Record this attempt
+      if (onRecordAttempt && result.verdict !== 'error') {
+        onRecordAttempt(question.id, result.verdict)
+      }
     } catch (err) {
       console.error('Answer verification failed:', err)
       // Fallback: just reveal the answer
@@ -178,6 +182,18 @@ function QuestionCard({ question, onClose, onNext, isPlayMode }) {
         >
           &times;
         </button>
+
+        {/* Previously attempted badge */}
+        {attemptVerdict && (
+          <div className={`mb-3 px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 w-fit ${
+            attemptVerdict === 'correct'
+              ? 'bg-emerald-900/20 border border-emerald-500/20 text-emerald-300'
+              : 'bg-red-900/20 border border-red-500/20 text-red-300'
+          }`}>
+            <span>{attemptVerdict === 'correct' ? '✓' : '✗'}</span>
+            <span>Previously Attempted</span>
+          </div>
+        )}
 
         {/* Type badge + Difficulty */}
         <div className="flex items-center gap-3 mb-3">

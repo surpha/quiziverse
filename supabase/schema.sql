@@ -134,3 +134,33 @@ on conflict (id) do nothing;
 
 -- To make a user an admin, run:
 -- update profiles set role = 'admin' where email = 'your-email@example.com';
+
+-- Play attempts: track user answers to questions in play mode
+create table if not exists play_attempts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  question_id text not null references questions(id) on delete cascade,
+  verdict text not null check (verdict in ('correct', 'partially_correct', 'incorrect')),
+  answered_at timestamptz default now(),
+  unique(user_id, question_id)
+);
+
+alter table play_attempts enable row level security;
+
+-- Users can read their own attempts
+create policy "Users can read own play attempts"
+  on play_attempts for select
+  to authenticated
+  using (auth.uid() = user_id);
+
+-- Users can insert their own attempts
+create policy "Users can insert own play attempts"
+  on play_attempts for insert
+  to authenticated
+  with check (auth.uid() = user_id);
+
+-- Users can update their own attempts (re-attempt overwrites)
+create policy "Users can update own play attempts"
+  on play_attempts for update
+  to authenticated
+  using (auth.uid() = user_id);

@@ -124,7 +124,7 @@ const RING_TYPE = {
   badexplain: 'none',
 }
 
-function StarNode({ question, position, onSelect, dimmed = false }) {
+function StarNode({ question, position, onSelect, dimmed = false, attemptVerdict = null }) {
   const meshRef = useRef()
   const atmoRef = useRef()
   const ringRef = useRef()
@@ -282,6 +282,27 @@ function StarNode({ question, position, onSelect, dimmed = false }) {
           <torusGeometry args={[1.5, 0.04, 8, 64]} />
           <meshBasicMaterial color={emissive} transparent opacity={0.35} />
         </mesh>
+      )}
+
+      {/* Attempt flag — green (correct) or red (incorrect/partial) */}
+      {!dimmed && attemptVerdict && (
+        <group position={[sizeScale * 1.2, sizeScale * 1.4, 0]} scale={[0.2, 0.2, 0.2]}>
+          {/* Flag pole */}
+          <mesh position={[0, -0.5, 0]}>
+            <cylinderGeometry args={[0.04, 0.04, 1.2, 6]} />
+            <meshBasicMaterial color="#aaaaaa" />
+          </mesh>
+          {/* Flag */}
+          <mesh position={[0.3, 0.1, 0]}>
+            <planeGeometry args={[0.6, 0.4]} />
+            <meshBasicMaterial
+              color={attemptVerdict === 'correct' ? '#22c55e' : '#ef4444'}
+              transparent
+              opacity={0.9}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </group>
       )}
     </group>
   )
