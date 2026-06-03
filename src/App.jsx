@@ -12,6 +12,8 @@ import PlayFilters from './components/PlayFilters'
 import ResetPassword from './components/ResetPassword'
 import OnboardingTour from './components/OnboardingTour'
 import DailyChallenge from './components/DailyChallenge'
+import DailyChallengePage from './components/DailyChallengePage'
+import DailyChallengeArchive from './components/DailyChallengeArchive'
 import UserProfile from './components/UserProfile'
 import UsernameSetup from './components/UsernameSetup'
 import AnalyticsDashboard from './components/AnalyticsDashboard'
@@ -75,6 +77,24 @@ function MobileFilterDropdown({ label, selectedCount, items, selected, onToggle,
 }
 
 function App() {
+  // Route: /daily-challenge
+  const [isDailyRoute, setIsDailyRoute] = useState(() => window.location.pathname === '/daily-challenge')
+
+  if (isDailyRoute) {
+    return (
+      <DailyChallengePage
+        onExit={() => {
+          setIsDailyRoute(false)
+          window.history.pushState({}, '', '/')
+        }}
+      />
+    )
+  }
+
+  return <MainApp />
+}
+
+function MainApp() {
   const { questions, loading, source, refetch } = useQuestions()
   const { user, profile, isAdmin, loading: authLoading, recoveryMode, setRecoveryMode, signIn, signUp, signOut, signInWithGoogle } = useAuth()
   const [selectedQuestion, setSelectedQuestion] = useState(null)
@@ -94,6 +114,7 @@ function App() {
   const [showCredits, setShowCredits] = useState(false)
   const [showTour, setShowTour] = useState(false)
   const [showDaily, setShowDaily] = useState(false)
+  const [showArchive, setShowArchive] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [localProfile, setLocalProfile] = useState(null)
   const [selectedDomains, setSelectedDomains] = useState([])
@@ -477,6 +498,12 @@ function App() {
             >
               📅 Daily Challenge
             </button>
+            <button
+              onClick={() => setShowArchive(true)}
+              className="px-6 py-3 glass glow-border text-purple-300 font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-purple-900/20"
+            >
+              🗓 Archives
+            </button>
           </div>
 
           {/* Desktop: Contribute bottom-right */}
@@ -505,13 +532,21 @@ function App() {
             </button>
           </div>
 
-          {/* Mobile: Daily Challenge bottom-left */}
-          <button
-            onClick={() => setShowDaily(true)}
-            className="md:hidden absolute bottom-6 left-4 z-20 px-4 py-2.5 glass glow-border text-amber-300 text-sm font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-amber-900/20"
-          >
-            📅 Daily
-          </button>
+          {/* Mobile: Daily Challenge + Archives bottom-left */}
+          <div className="md:hidden absolute bottom-6 left-4 z-20 flex flex-col gap-2">
+            <button
+              onClick={() => setShowDaily(true)}
+              className="px-4 py-2.5 glass glow-border text-amber-300 text-sm font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-2 hover:bg-amber-900/20"
+            >
+              📅 Daily
+            </button>
+            <button
+              onClick={() => setShowArchive(true)}
+              className="px-4 py-2 glass glow-border text-purple-300 text-[11px] font-orbitron tracking-wider rounded-full transition-all cursor-pointer flex items-center gap-1.5 hover:bg-purple-900/20"
+            >
+              🗓 Archives
+            </button>
+          </div>
 
           {/* Mobile: Contribute FAB bottom-right */}
           <button
@@ -591,6 +626,19 @@ function App() {
             sessionStorage.setItem(`daily-dismissed-${todayChallenge.challenge_date}`, '1')
           }
         }} />
+      )}
+
+      {showArchive && (
+        <DailyChallengeArchive
+          userId={user.id}
+          onSelectDate={(date) => {
+            setShowArchive(false)
+            setShowDaily(true)
+            // Navigate to daily challenge page with date
+            window.location.href = `/daily-challenge?date=${date}`
+          }}
+          onClose={() => setShowArchive(false)}
+        />
       )}
 
       {showProfile && (

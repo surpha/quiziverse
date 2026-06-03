@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { verifyAnswer, isLLMConfigured } from '../utils/llmJudge'
 import { useDailyChallenge } from '../hooks/useDailyChallenge'
+import { useDailyChallengeByDate } from '../hooks/useDailyChallengeByDate'
 
 function getYouTubeId(url) {
   if (!url) return null
@@ -60,8 +61,11 @@ function ScoreBar({ score, maxPossible }) {
   )
 }
 
-export default function DailyChallenge({ userId, onClose }) {
-  const { challenge, attempt, loading, error, startAttempt, saveAnswer } = useDailyChallenge(userId)
+export default function DailyChallenge({ userId, onClose, date }) {
+  // Use date-specific hook for archive mode, regular hook for today
+  const todayHook = useDailyChallenge(date ? null : userId)
+  const archiveHook = useDailyChallengeByDate(userId, date || null)
+  const { challenge, attempt, loading, error, startAttempt, saveAnswer } = date ? archiveHook : todayHook
   const [currentQ, setCurrentQ] = useState(0)
   const [userAnswer, setUserAnswer] = useState('')
   const [verifying, setVerifying] = useState(false)
@@ -70,6 +74,8 @@ export default function DailyChallenge({ userId, onClose }) {
   const [showBlast, setShowBlast] = useState(false)
   const [initialized, setInitialized] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
+  const [reviewMode, setReviewMode] = useState(false)
+  const [reviewIndex, setReviewIndex] = useState(0)
 
   // Sync current question index from attempt ONLY on initial load
   useEffect(() => {
@@ -241,7 +247,7 @@ export default function DailyChallenge({ userId, onClose }) {
       '',
       `Total: ${total}/${max} ${stars}`,
       '',
-      'Play daily → https://quiziverse-tau.vercel.app'
+      'Play daily → https://quiziverse-tau.vercel.app/daily-challenge'
     ].join('\n')
 
     return text
@@ -270,7 +276,7 @@ export default function DailyChallenge({ userId, onClose }) {
   }
 
   // Completed view
-  if (isCompleted) {
+  if (isCompleted && !reviewMode) {
     const totalScore = attempt?.total_score || 0
     const answersData = attempt?.answers || []
     return (
@@ -301,7 +307,13 @@ export default function DailyChallenge({ userId, onClose }) {
             <pre className="text-gray-300 text-xs whitespace-pre-wrap font-mono leading-relaxed">{generateShareText()}</pre>
           </div>
 
-          <div className="flex gap-3 justify-center">
+          <div className="flex gap-3 justify-center flex-wrap">
+            <button
+              onClick={() => { setReviewMode(true); setReviewIndex(0) }}
+              className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-full cursor-pointer transition-colors flex items-center gap-2"
+            >
+              🔍 Review Answers
+            </button>
             <button
               onClick={handleShare}
               className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-full cursor-pointer transition-colors flex items-center gap-2"
@@ -311,6 +323,146 @@ export default function DailyChallenge({ userId, onClose }) {
             <button onClick={onClose} className="px-5 py-2.5 glass glow-border text-cyan-300 text-sm rounded-full cursor-pointer hover:bg-cyan-900/20">
               Close
             </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Review mode: browse through past answers
+  if (reviewMode) {
+    const reviewQ = questions[reviewIndex]
+    const reviewAnswer = attempt?.answers?.find(a => a.question_index === reviewIndex)
+    return (
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
+        <div className="glass glow-border rounded-2xl p-6 max-w-lg w-[92%] max-h-[90vh] overflow-y-auto relative" onClick={e => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🔍</span>
+              <h3 className="text-white text-sm font-orbitron tracking-wider">Review • {challenge.challenge_date}</h3>
+            </div>
+            <button onClick={() => setReviewMode(false)} className="text-gray-400 hover:text-white text-sm cursor-pointer">← Back</button>
+          </div>
+
+          {/* Progress dots */}
+          <div className="flex items-center gap-2 mb-4">
+            {questions.map((_, i) => {
+              const a = attempt?.answers?.find(ans => ans.question_index === i)
+              return (
+                <button
+                  key={i}
+                  onClick={() => setReviewIndex(i)}
+                  className={`flex-1 h-1.5 rounded-full transition-all cursor-pointer ${
+                    i === reviewIndex ? 'bg-purple-400' :
+                    a?.verdict === 'correct' ? 'bg-emerald-500' :
+                    a?.verdict === 'partial' ? 'bg-amber-500' : 'bg-red-500'
+                  }`}
+                />
+              )
+            })}
+          </div>
+
+          {/* Question */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-gray-500 text-xs">Q{reviewIndex + 1} of {questions.length}</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">
+                Difficulty: {reviewQ.difficulty}/10
+              </span>
+            </div>
+            <p className="text-white text-base leading-relaxed">{reviewQ.question}</p>
+          </div>
+
+          {/* Image */}
+          {reviewQ.imageUrl && (
+            <div className="mb-4 h-48 rounded-lg border border-cyan-500/20 bg-black/30 overflow-x-auto overflow-y-hidden flex items-center gap-2 px-2">
+              {reviewQ.imageUrl.split(',').map((url, i) => (
+                <img key={i} src={url.trim()} alt={`Question visual ${i + 1}`} className="h-full max-h-44 object-contain flex-shrink-0 rounded" />
+              ))}
+            </div>
+          )}
+
+          {/* Media */}
+          <MediaEmbed url={reviewQ.mediaUrl} />
+
+          {/* Hints that were revealed */}
+          {reviewAnswer?.hints_used?.length > 0 && reviewQ.hints && (
+            <div className="mb-4 space-y-1">
+              <p className="text-gray-500 text-xs uppercase tracking-wider">Hints used</p>
+              {reviewAnswer.hints_used.map((idx) => (
+                <div key={idx} className="text-amber-300/90 text-sm bg-amber-900/20 rounded-lg px-3 py-2">
+                  💡 {reviewQ.hints[idx]?.text}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Your answer */}
+          <div className="mb-3">
+            <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Your answer</p>
+            <p className="text-white text-sm bg-gray-800/50 rounded-lg px-4 py-2.5 border border-gray-700">
+              {reviewAnswer?.answer || <span className="text-gray-500 italic">No answer recorded</span>}
+            </p>
+          </div>
+
+          {/* Verdict + correct answer */}
+          <div className={`rounded-lg px-4 py-3 mb-4 ${
+            reviewAnswer?.verdict === 'correct'
+              ? 'bg-emerald-900/30 border border-emerald-500/30' :
+            reviewAnswer?.verdict === 'partial'
+              ? 'bg-amber-900/30 border border-amber-500/30'
+              : 'bg-red-900/30 border border-red-500/30'
+          }`}>
+            <div className="flex items-center justify-between mb-1">
+              <p className={`text-sm font-medium ${
+                reviewAnswer?.verdict === 'correct' ? 'text-emerald-400' :
+                reviewAnswer?.verdict === 'partial' ? 'text-amber-400' : 'text-red-400'
+              }`}>
+                {reviewAnswer?.verdict === 'correct' ? '✓ Correct' :
+                 reviewAnswer?.verdict === 'partial' ? '~ Partial' : '✗ Incorrect'}
+              </p>
+              <span className="text-cyan-300 text-xs font-orbitron">{reviewAnswer?.score || 0} pts</span>
+            </div>
+            <p className="text-gray-300 text-xs mt-1">
+              Correct answer: {reviewQ.answer}
+            </p>
+            {reviewQ.answerExplanation && (
+              <p className="text-gray-400 text-xs mt-2 leading-relaxed">{reviewQ.answerExplanation}</p>
+            )}
+            {reviewQ.answerImageUrl && (
+              <div className="mt-3 rounded-lg overflow-hidden border border-cyan-500/20">
+                <img src={reviewQ.answerImageUrl} alt="Answer visual" className="w-full max-h-48 object-contain bg-black/30" />
+              </div>
+            )}
+            {reviewQ.answerMediaUrl && <MediaEmbed url={reviewQ.answerMediaUrl} />}
+          </div>
+
+          {/* Navigation */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setReviewIndex(i => Math.max(0, i - 1))}
+              disabled={reviewIndex === 0}
+              className="px-4 py-2 glass text-cyan-300 text-sm rounded-lg cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              ← Prev
+            </button>
+            <span className="text-gray-500 text-xs">{reviewIndex + 1} / {questions.length}</span>
+            {reviewIndex < questions.length - 1 ? (
+              <button
+                onClick={() => setReviewIndex(i => i + 1)}
+                className="px-4 py-2 glass text-cyan-300 text-sm rounded-lg cursor-pointer"
+              >
+                Next →
+              </button>
+            ) : (
+              <button
+                onClick={() => setReviewMode(false)}
+                className="px-4 py-2 glass text-purple-300 text-sm rounded-lg cursor-pointer"
+              >
+                Done
+              </button>
+            )}
           </div>
         </div>
       </div>
