@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/daily-challenge", "destination": "/index.html" }
+  ]
+}
