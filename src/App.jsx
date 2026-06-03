@@ -22,6 +22,7 @@ import EventAdmin from './components/EventAdmin'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { useDailyChallenge } from './hooks/useDailyChallenge'
+import { usePlayAttempts } from './hooks/usePlayAttempts'
 import { computePositions } from './utils/coordinateMapper'
 import DOMAINS, { DOMAIN_KEYS } from './utils/domainConfig'
 import QUESTION_TYPES from './utils/questionTypes'
@@ -97,6 +98,7 @@ function App() {
 function MainApp() {
   const { questions, loading, source, refetch } = useQuestions()
   const { user, profile, isAdmin, loading: authLoading, recoveryMode, setRecoveryMode, signIn, signUp, signOut, signInWithGoogle } = useAuth()
+  const { attempts, recordAttempt } = usePlayAttempts(user?.id)
   const [selectedQuestion, setSelectedQuestion] = useState(null)
   const [isPlayMode, setIsPlayMode] = useState(false)
   const [showContribute, setShowContribute] = useState(false)
@@ -353,13 +355,22 @@ function MainApp() {
     <div className="w-full h-full relative">
       <Canvas camera={{ position: [0, 0, 18], fov: 60 }}>
         <Scene
-          onSelectQuestion={(q) => { setSelectedQuestion(q); setShowCard(true) }}
+          onSelectQuestion={(q) => {
+            setSelectedQuestion(q)
+            setZoomTarget(q.position)
+            setIsZooming(true)
+            setTimeout(() => {
+              setIsZooming(false)
+              setShowCard(true)
+            }, 800)
+          }}
           onSunClick={() => setShowCredits(true)}
           filters={sceneFilters}
           questions={questions}
           isSpinning={isSpinning}
           isZooming={isZooming}
           zoomTarget={zoomTarget}
+          attempts={attempts}
         />
       </Canvas>
 
@@ -576,6 +587,8 @@ function MainApp() {
           onClose={handleClose}
           onNext={handleNext}
           isPlayMode={isPlayMode}
+          attemptVerdict={attempts[selectedQuestion.id] || null}
+          onRecordAttempt={recordAttempt}
         />
       )}
 

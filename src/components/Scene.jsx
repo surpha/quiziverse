@@ -464,7 +464,7 @@ function ShootingStar({ config }) {
   )
 }
 
-function Scene({ onSelectQuestion, onSunClick, filters, questions, isSpinning, isZooming, zoomTarget }) {
+function Scene({ onSelectQuestion, onSunClick, filters, questions, isSpinning, isZooming, zoomTarget, attempts }) {
   const positionedQuestions = useMemo(() => computePositions(questions), [questions])
 
   return (
@@ -514,6 +514,7 @@ function Scene({ onSelectQuestion, onSunClick, filters, questions, isSpinning, i
             position={q.position}
             onSelect={onSelectQuestion}
             dimmed={!matchesFilters(q, filters)}
+            attemptVerdict={attempts?.[q.id] || null}
           />
         ))}
       </SpinningGlobe>
