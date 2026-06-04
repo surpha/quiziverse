@@ -431,8 +431,10 @@ export default function DailyChallenge({ userId, onClose, date }) {
               <p className="text-gray-400 text-xs mt-2 leading-relaxed">{reviewQ.answerExplanation}</p>
             )}
             {reviewQ.answerImageUrl && (
-              <div className="mt-3 rounded-lg overflow-hidden border border-cyan-500/20">
-                <img src={reviewQ.answerImageUrl} alt="Answer visual" className="w-full max-h-48 object-contain bg-black/30" />
+              <div className="mt-3 h-48 rounded-lg border border-cyan-500/20 bg-black/30 overflow-x-auto overflow-y-hidden flex items-center gap-2 px-2">
+                {reviewQ.answerImageUrl.split(',').map((url, i) => (
+                  <img key={i} src={url.trim()} alt={`Answer visual ${i + 1}`} className="h-full max-h-44 object-contain flex-shrink-0 rounded" />
+                ))}
               </div>
             )}
             {reviewQ.answerMediaUrl && <MediaEmbed url={reviewQ.answerMediaUrl} />}
@@ -611,10 +613,12 @@ export default function DailyChallenge({ userId, onClose, date }) {
               {question.answerExplanation && (
                 <p className="text-gray-400 text-xs mt-2 leading-relaxed">{question.answerExplanation}</p>
               )}
-              {/* Answer image/media */}
+              {/* Answer image(s) - supports comma-separated URLs */}
               {question.answerImageUrl && (
-                <div className="mt-3 rounded-lg overflow-hidden border border-cyan-500/20">
-                  <img src={question.answerImageUrl} alt="Answer visual" className="w-full max-h-48 object-contain bg-black/30" />
+                <div className="mt-3 h-48 rounded-lg border border-cyan-500/20 bg-black/30 overflow-x-auto overflow-y-hidden flex items-center gap-2 px-2">
+                  {question.answerImageUrl.split(',').map((url, i) => (
+                    <img key={i} src={url.trim()} alt={`Answer visual ${i + 1}`} className="h-full max-h-44 object-contain flex-shrink-0 rounded" />
+                  ))}
                 </div>
               )}
               {question.answerMediaUrl && <MediaEmbed url={question.answerMediaUrl} />}
