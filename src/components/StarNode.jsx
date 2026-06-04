@@ -112,16 +112,13 @@ const glowTexture = createGlowTexture()
 const RING_TYPE = {
   straight: 'none',
   visual: 'wide',
-  audio: 'none',
-  video: 'wide',
+  audio: 'wide',
   connect: 'double',
   cryptic: 'none',
   fitb: 'thin',
-  longform: 'none',
-  list: 'thin',
   truefalse: 'thin',
-  bounce: 'none',
   badexplain: 'none',
+  trivia: 'none',
 }
 
 function StarNode({ question, position, onSelect, dimmed = false, attemptVerdict = null }) {
