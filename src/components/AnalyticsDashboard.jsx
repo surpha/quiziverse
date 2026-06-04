@@ -277,7 +277,7 @@ function ChallengesTab({ data }) {
         <StatCard label="Completed" value={data.completedAttempts} />
         <StatCard label="Completion Rate" value={`${data.completionRate}%`} sub={`${data.completedAttempts}/${data.startedAttempts}`} />
         <StatCard label="Avg Score/Challenge" value={data.avgScorePerChallenge} sub={`out of ${data.avgMaxPerChallenge}`} />
-        <StatCard label="Avg Score/Question" value={data.avgScorePerQuestion} sub="out of 10" />
+        <StatCard label="Avg Score/Question" value={data.avgScorePerQuestion} sub="per Question" />
       </div>
 
       {/* Participation */}
