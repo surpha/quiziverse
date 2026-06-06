@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import { useLiveQuizAdmin } from '../hooks/useLiveQuiz'
-import { verifyAnswer } from '../utils/llmJudge'
+import { verifyAnswer, getGroqKeyCount } from '../utils/llmJudge'
 import { supabase } from '../lib/supabase'
 
 function generateSlug(title) {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) + '-' + Math.random().toString(36).slice(2, 6)
 }
 
-export default function LiveQuizAdmin({ userId, isAdmin, onClose }) {
+export default function LiveQuizAdmin({ userId, isAdmin, profile, onClose }) {
   const { quizzes, loading, createQuiz, updateStatus, updateQuiz, deleteQuiz, getResponses, saveEvaluation, refetch } = useLiveQuizAdmin(userId)
   const [view, setView] = useState('list') // 'list' | 'create' | 'manage' | 'evaluate' | 'quizmasters'
   const [selectedQuiz, setSelectedQuiz] = useState(null)
@@ -99,59 +100,84 @@ export default function LiveQuizAdmin({ userId, isAdmin, onClose }) {
     const questions = quiz.questions
     let total = 0
     const totalToProcess = responses.length * questions.length
-    setEvalProgress({ current: 0, total: totalToProcess, phase: 'Evaluating answers...' })
+    const concurrency = Math.max(1, getGroqKeyCount()) // Parallel batches based on available keys
+    setEvalProgress({ current: 0, total: totalToProcess, phase: `Evaluating (${concurrency} key${concurrency > 1 ? 's' : ''})...` })
     setView('evaluate')
 
     for (const resp of responses) {
-      const scores = []
+      const scores = new Array(questions.length)
       let respTotal = 0
 
+      // Separate into instant (no LLM) and needs-LLM
+      const llmTasks = []
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i]
         const userAnswer = resp.answers?.find(a => a.question_index === i)?.answer || ''
-
-        let verdict = 'incorrect'
-        let score = 0
-
         const trimmedAnswer = userAnswer.trim().toLowerCase()
         const trimmedCorrect = q.answer.trim().toLowerCase()
 
+        let verdict = 'incorrect'
+        let score = 0
+        let needsLLM = false
+
         if (!trimmedAnswer) {
-          // Blank answer — skip LLM
           verdict = 'incorrect'
         } else if (trimmedAnswer === trimmedCorrect) {
-          // Exact match — skip LLM
           verdict = 'correct'
           score = q.points
         } else if (trimmedCorrect.includes(trimmedAnswer) || trimmedAnswer.includes(trimmedCorrect)) {
-          // Substring match (e.g. "paris" vs "paris, france") — skip LLM
           verdict = 'correct'
           score = q.points
         } else if (trimmedAnswer.replace(/[^a-z0-9]/g, '') === trimmedCorrect.replace(/[^a-z0-9]/g, '')) {
-          // Same after stripping punctuation/spaces (e.g. "new york" vs "new-york")
           verdict = 'correct'
           score = q.points
         } else {
-          // Needs LLM evaluation
-          try {
-            const result = await verifyAnswer(q.question, q.answer, userAnswer)
-            verdict = result.verdict
-            if (verdict === 'correct') score = q.points
-            else if (verdict === 'partially_correct') score = Math.floor(q.points * 0.5)
-          } catch {
-            verdict = 'error'
-          }
-          // Rate limit only for LLM calls
-          await new Promise(r => setTimeout(r, 200))
+          needsLLM = true
         }
 
-        scores.push({ question_index: i, verdict, score })
-        respTotal += score
-        total++
-        setEvalProgress({ current: total, total: totalToProcess, phase: 'Evaluating answers...' })
+        if (needsLLM) {
+          llmTasks.push({ index: i, question: q.question, answer: q.answer, userAnswer, points: q.points })
+        } else {
+          scores[i] = { question_index: i, verdict, score }
+          respTotal += score
+          total++
+        }
       }
 
-      await saveEvaluation(resp.id, scores, respTotal)
+      setEvalProgress({ current: total, total: totalToProcess, phase: `Evaluating (${concurrency} key${concurrency > 1 ? 's' : ''})...` })
+
+      // Process LLM tasks in parallel batches
+      for (let b = 0; b < llmTasks.length; b += concurrency) {
+        const batch = llmTasks.slice(b, b + concurrency)
+        const results = await Promise.allSettled(
+          batch.map(async (task) => {
+            const result = await verifyAnswer(task.question, task.answer, task.userAnswer)
+            return { ...task, result }
+          })
+        )
+
+        for (const res of results) {
+          let verdict = 'error'
+          let score = 0
+          const task = res.status === 'fulfilled' ? res.value : batch[results.indexOf(res)]
+
+          if (res.status === 'fulfilled') {
+            verdict = res.value.result.verdict
+            if (verdict === 'correct') score = res.value.result.points || task.points
+            else if (verdict === 'partially_correct') score = Math.floor(task.points * 0.5)
+          }
+
+          scores[task.index] = { question_index: task.index, verdict, score }
+          respTotal += score
+          total++
+        }
+
+        setEvalProgress({ current: total, total: totalToProcess, phase: `Evaluating (${concurrency} key${concurrency > 1 ? 's' : ''})...` })
+        // Small delay between batches to avoid rate limits
+        if (b + concurrency < llmTasks.length) await new Promise(r => setTimeout(r, 150))
+      }
+
+      await saveEvaluation(resp.id, scores.filter(Boolean), respTotal)
     }
 
     // Mark quiz as results ready
@@ -330,6 +356,11 @@ export default function LiveQuizAdmin({ userId, isAdmin, onClose }) {
               >
                 Copy
               </button>
+            </div>
+            <div className="mt-3 flex justify-center">
+              <div className="bg-white p-2 rounded-lg">
+                <QRCodeSVG value={joinUrl} size={140} />
+              </div>
             </div>
           </div>
 
@@ -515,7 +546,10 @@ export default function LiveQuizAdmin({ userId, isAdmin, onClose }) {
             <span className="text-lg">🎙</span>
             <h3 className="text-white text-sm font-orbitron tracking-wider">Live Quiz Manager</h3>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-lg cursor-pointer">×</button>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-xs">{profile?.avatar_emoji || '✦'} {profile?.display_name || profile?.email}</span>
+            <button onClick={onClose} className="text-gray-400 hover:text-white text-lg cursor-pointer">×</button>
+          </div>
         </div>
 
         <button

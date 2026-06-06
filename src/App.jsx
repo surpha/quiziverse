@@ -142,7 +142,7 @@ function LiveQuizRoute({ onExit }) {
         </div>
       )
     }
-    return <LiveQuizAdmin userId={user.id} isAdmin={isAdmin} onClose={onExit} />
+    return <LiveQuizAdmin userId={user.id} isAdmin={isAdmin} profile={profile} onClose={onExit} />
   }
 
   // Slug provided = player view
@@ -156,7 +156,7 @@ function LiveQuizRoute({ onExit }) {
     )
   }
 
-  return <LiveQuizPlayer slug={slug} userId={user.id} onExit={onExit} />
+  return <LiveQuizPlayer slug={slug} userId={user.id} profile={profile} onExit={onExit} />
 }
 
 function MainApp() {
