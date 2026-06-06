@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/daily-challenge", "destination": "/index.html" }
+    { "source": "/daily-challenge", "destination": "/index.html" },
+    { "source": "/live", "destination": "/index.html" }
   ]
 }

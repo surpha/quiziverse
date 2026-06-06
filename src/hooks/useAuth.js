@@ -120,6 +120,7 @@ export function useAuth() {
     profile,
     loading,
     isAdmin: profile?.role === 'admin',
+    isQuizmaster: profile?.role === 'quizmaster' || profile?.role === 'admin',
     recoveryMode,
     setRecoveryMode,
     signIn,
