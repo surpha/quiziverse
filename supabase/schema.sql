@@ -22,7 +22,7 @@ create table if not exists questions (
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
-  role text not null default 'user' check (role in ('user', 'admin')),
+  role text not null default 'user' check (role in ('user', 'quizmaster', 'admin')),
   display_name text,
   username text unique,
   age_range text check (age_range in ('under18', '18-24', '25-34', '35-44', '45+')),
@@ -164,3 +164,111 @@ create policy "Users can update own play attempts"
   on play_attempts for update
   to authenticated
   using (auth.uid() = user_id);
+
+-- ============================================================
+-- LIVE QUIZZES: Real-time IRL quiz hosting
+-- ============================================================
+
+-- Live quiz events created by quizmasters
+create table if not exists live_quizzes (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  slug text unique not null,
+  created_by uuid not null references auth.users(id) on delete cascade,
+  status text not null default 'draft' check (status in ('draft', 'live', 'locked', 'evaluating', 'results')),
+  questions jsonb not null default '[]'::jsonb,
+  -- questions format: [{ question, answer, points }]
+  num_questions int not null default 0,
+  created_at timestamptz default now(),
+  locked_at timestamptz,
+  evaluated_at timestamptz
+);
+
+alter table live_quizzes enable row level security;
+
+-- Anyone authenticated can read live/locked/results quizzes (to join)
+create policy "Read active live quizzes"
+  on live_quizzes for select
+  to authenticated
+  using (status in ('live', 'locked', 'evaluating', 'results') or created_by = auth.uid());
+
+-- Admins/quizmasters can create
+create policy "Create live quizzes"
+  on live_quizzes for insert
+  to authenticated
+  with check (auth.uid() = created_by);
+
+-- Only creator can update their quiz
+create policy "Update own live quizzes"
+  on live_quizzes for update
+  to authenticated
+  using (auth.uid() = created_by);
+
+-- Only creator can delete their quiz
+create policy "Delete own live quizzes"
+  on live_quizzes for delete
+  to authenticated
+  using (auth.uid() = created_by);
+
+-- Player responses to a live quiz
+create table if not exists live_quiz_responses (
+  id uuid primary key default gen_random_uuid(),
+  quiz_id uuid not null references live_quizzes(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  answers jsonb not null default '[]'::jsonb,
+  -- answers format: [{ question_index: 0, answer: "text" }, ...]
+  scores jsonb default null,
+  -- scores format: [{ question_index, verdict, score }] — filled after evaluation
+  total_score int default null,
+  submitted_at timestamptz default now(),
+  evaluated boolean default false,
+  unique(quiz_id, user_id)
+);
+
+alter table live_quiz_responses enable row level security;
+
+-- Players can read their own responses
+create policy "Read own live quiz responses"
+  on live_quiz_responses for select
+  to authenticated
+  using (auth.uid() = user_id);
+
+-- Quizmaster can read all responses for their quiz
+create policy "Quizmaster reads all responses"
+  on live_quiz_responses for select
+  to authenticated
+  using (
+    exists (select 1 from live_quizzes where id = quiz_id and created_by = auth.uid())
+  );
+
+-- Players can insert their own response
+create policy "Insert own live quiz response"
+  on live_quiz_responses for insert
+  to authenticated
+  with check (auth.uid() = user_id);
+
+-- Players can update their own response (autosave) while quiz is live
+create policy "Update own live quiz response"
+  on live_quiz_responses for update
+  to authenticated
+  using (auth.uid() = user_id);
+
+-- Quizmaster can update responses (for evaluation scoring)
+create policy "Quizmaster updates responses"
+  on live_quiz_responses for update
+  to authenticated
+  using (
+    exists (select 1 from live_quizzes where id = quiz_id and created_by = auth.uid())
+  );
+
+-- All participants can read leaderboard when quiz is in results status
+create policy "Read all responses when results"
+  on live_quiz_responses for select
+  to authenticated
+  using (
+    exists (select 1 from live_quizzes where id = quiz_id and status = 'results')
+  );
+
+-- Enable realtime for live quiz state changes
+alter publication supabase_realtime add table live_quizzes;
+alter publication supabase_realtime add table live_quiz_responses;

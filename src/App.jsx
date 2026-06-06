@@ -19,6 +19,8 @@ import UsernameSetup from './components/UsernameSetup'
 import AnalyticsDashboard from './components/AnalyticsDashboard'
 import EventChallenge from './components/EventChallenge'
 import EventAdmin from './components/EventAdmin'
+import LiveQuizPlayer from './components/LiveQuizPlayer'
+import LiveQuizAdmin from './components/LiveQuizAdmin'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { useDailyChallenge } from './hooks/useDailyChallenge'
@@ -80,6 +82,8 @@ function MobileFilterDropdown({ label, selectedCount, items, selected, onToggle,
 function App() {
   // Route: /daily-challenge
   const [isDailyRoute, setIsDailyRoute] = useState(() => window.location.pathname === '/daily-challenge')
+  // Route: /live
+  const [isLiveRoute, setIsLiveRoute] = useState(() => window.location.pathname === '/live')
 
   if (isDailyRoute) {
     return (
@@ -92,12 +96,72 @@ function App() {
     )
   }
 
+  if (isLiveRoute) {
+    return <LiveQuizRoute onExit={() => { setIsLiveRoute(false); window.history.pushState({}, '', '/') }} />
+  }
+
   return <MainApp />
+}
+
+function LiveQuizRoute({ onExit }) {
+  const { user, profile, isAdmin, isQuizmaster, loading: authLoading, signIn, signUp, signInWithGoogle } = useAuth()
+  const [showAuth, setShowAuth] = useState(false)
+  const slug = new URLSearchParams(window.location.search).get('code')
+
+  // If slug provided but user not signed in, prompt auth
+  useEffect(() => {
+    if (slug && !user && !authLoading) setShowAuth(true)
+  }, [slug, user, authLoading])
+
+  if (authLoading) {
+    return (
+      <div className="w-screen h-screen bg-gray-950 flex items-center justify-center">
+        <p className="text-cyan-400 text-sm animate-pulse font-orbitron">Loading...</p>
+      </div>
+    )
+  }
+
+  // No slug = admin panel (for quizmasters/admins)
+  if (!slug) {
+    if (!user) {
+      return (
+        <div className="w-screen h-screen bg-gray-950 flex flex-col items-center justify-center gap-4">
+          <p className="text-white">Sign in to manage live quizzes</p>
+          <button onClick={() => setShowAuth(true)} className="px-4 py-2 bg-cyan-600 text-white rounded-lg cursor-pointer">Sign In</button>
+          {showAuth && <AuthModal onClose={() => setShowAuth(false)} signIn={signIn} signUp={signUp} signInWithGoogle={signInWithGoogle} />}
+        </div>
+      )
+    }
+    if (!isQuizmaster) {
+      return (
+        <div className="w-screen h-screen bg-gray-950 flex flex-col items-center justify-center gap-4">
+          <div className="text-4xl">🔒</div>
+          <p className="text-white font-orbitron">Access Restricted</p>
+          <p className="text-gray-400 text-sm text-center max-w-sm">You need quizmaster permissions to create live quizzes. Ask an admin to grant you access.</p>
+          <button onClick={onExit} className="text-cyan-300 text-sm cursor-pointer hover:underline">← Go back</button>
+        </div>
+      )
+    }
+    return <LiveQuizAdmin userId={user.id} isAdmin={isAdmin} onClose={onExit} />
+  }
+
+  // Slug provided = player view
+  if (!user) {
+    return (
+      <div className="w-screen h-screen bg-gray-950 flex flex-col items-center justify-center gap-4">
+        <p className="text-white font-orbitron">Sign in to join the quiz</p>
+        <button onClick={() => setShowAuth(true)} className="px-4 py-2 bg-cyan-600 text-white rounded-lg cursor-pointer">Sign In</button>
+        {showAuth && <AuthModal onClose={() => setShowAuth(false)} signIn={signIn} signUp={signUp} signInWithGoogle={signInWithGoogle} />}
+      </div>
+    )
+  }
+
+  return <LiveQuizPlayer slug={slug} userId={user.id} onExit={onExit} />
 }
 
 function MainApp() {
   const { questions, loading, source, refetch } = useQuestions()
-  const { user, profile, isAdmin, loading: authLoading, recoveryMode, setRecoveryMode, signIn, signUp, signOut, signInWithGoogle } = useAuth()
+  const { user, profile, isAdmin, isQuizmaster, loading: authLoading, recoveryMode, setRecoveryMode, signIn, signUp, signOut, signInWithGoogle } = useAuth()
   const { attempts, recordAttempt } = usePlayAttempts(user?.id)
   const [selectedQuestion, setSelectedQuestion] = useState(null)
   const [isPlayMode, setIsPlayMode] = useState(false)
@@ -440,6 +504,14 @@ function MainApp() {
               🎯 Events
             </button>
           )}
+          {isQuizmaster && (
+            <button
+              onClick={() => { window.location.href = '/live' }}
+              className="px-3 py-1.5 bg-rose-600/80 hover:bg-rose-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer hidden md:block"
+            >
+              📡 Live Quiz
+            </button>
+          )}
 
         </div>
         {/* Mobile: How to Play + Admin below sign out */}
@@ -472,6 +544,14 @@ function MainApp() {
               className="px-2.5 py-1 bg-purple-600/80 hover:bg-purple-500 text-white text-[10px] font-medium rounded-lg transition-colors cursor-pointer"
             >
               🎯
+            </button>
+          )}
+          {isQuizmaster && (
+            <button
+              onClick={() => { window.location.href = '/live' }}
+              className="px-2.5 py-1 bg-rose-600/80 hover:bg-rose-500 text-white text-[10px] font-medium rounded-lg transition-colors cursor-pointer"
+            >
+              📡
             </button>
           )}
         </div>
