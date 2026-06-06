@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLiveQuiz } from '../hooks/useLiveQuiz'
 import LiveQuizLeaderboard from './LiveQuizLeaderboard'
 
-export default function LiveQuizPlayer({ slug, userId, onExit }) {
+export default function LiveQuizPlayer({ slug, userId, profile, onExit }) {
   const { quiz, response, loading, error, joinQuiz, saveAnswers } = useLiveQuiz(slug, userId)
   const [answers, setAnswers] = useState([])
   const [joined, setJoined] = useState(false)
@@ -120,6 +120,7 @@ export default function LiveQuizPlayer({ slug, userId, onExit }) {
             </div>
           </div>
           <div className="text-right">
+            <span className="text-gray-400 text-[10px] block">{profile?.avatar_emoji || '✦'} {profile?.display_name || profile?.email}</span>
             {saving && <span className="text-amber-400 text-[10px] animate-pulse">Saving...</span>}
             {!saving && lastSaved && (
               <span className="text-gray-500 text-[10px]">

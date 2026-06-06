@@ -49,8 +49,33 @@ export function isLLMConfigured() {
   return !!import.meta.env.VITE_GROQ_API_KEY
 }
 
+// Multi-key rotation for Groq — supports VITE_GROQ_API_KEY and VITE_GROQ_API_KEY_2, _3, etc.
+let groqKeyIndex = 0
+function getGroqKeys() {
+  const keys = []
+  const primary = import.meta.env.VITE_GROQ_API_KEY
+  if (primary) keys.push(primary)
+  for (let i = 2; i <= 10; i++) {
+    const k = import.meta.env[`VITE_GROQ_API_KEY_${i}`]
+    if (k) keys.push(k)
+  }
+  return keys
+}
+function getNextGroqKey() {
+  const keys = getGroqKeys()
+  if (keys.length === 0) return null
+  const key = keys[groqKeyIndex % keys.length]
+  groqKeyIndex++
+  return key
+}
+
+/** Get number of available Groq keys for parallelization */
+export function getGroqKeyCount() {
+  return getGroqKeys().length
+}
+
 async function callGroq(userMessage) {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY
+  const apiKey = getNextGroqKey()
   if (!apiKey) throw new Error('VITE_GROQ_API_KEY not configured')
 
   const model = import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
@@ -160,7 +185,7 @@ Respond ONLY with valid JSON in this exact format:
 }`
 
 async function callGroqCustom(systemPrompt, userMessage) {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY
+  const apiKey = getNextGroqKey()
   if (!apiKey) throw new Error('VITE_GROQ_API_KEY not configured')
   const model = import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
