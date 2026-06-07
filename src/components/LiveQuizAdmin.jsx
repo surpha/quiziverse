@@ -18,6 +18,7 @@ export default function LiveQuizAdmin({ userId, isAdmin, profile, onClose }) {
   const [qmSearch, setQmSearch] = useState('')
   const [qmSearchResults, setQmSearchResults] = useState([])
   const [qmLoading, setQmLoading] = useState(false)
+  const [viewResponses, setViewResponses] = useState(null) // { quiz, responses }
 
   // Live participant count for the selected quiz
   useEffect(() => {
@@ -398,6 +399,26 @@ export default function LiveQuizAdmin({ userId, isAdmin, profile, onClose }) {
                 📊 View Leaderboard
               </button>
             )}
+            {quiz.status !== 'draft' && (
+              <button
+                onClick={async () => {
+                  const { data } = await getResponses(quiz.id)
+                  // Fetch profiles for display names
+                  const userIds = (data || []).map(r => r.user_id)
+                  let profileMap = {}
+                  if (userIds.length > 0) {
+                    const { data: profiles } = await supabase.from('profiles').select('id, display_name, username, email, avatar_emoji').in('id', userIds)
+                    ;(profiles || []).forEach(p => { profileMap[p.id] = p })
+                  }
+                  const enriched = (data || []).map(r => ({ ...r, profile: profileMap[r.user_id] || null }))
+                  setViewResponses({ quiz, responses: enriched })
+                  setView('responses')
+                }}
+                className="w-full px-4 py-2.5 bg-gray-700/80 hover:bg-gray-600 text-white text-sm font-medium rounded-lg cursor-pointer"
+              >
+                👁 View Responses ({participantCount})
+              </button>
+            )}
           </div>
 
           {/* Questions preview */}
@@ -459,6 +480,83 @@ export default function LiveQuizAdmin({ userId, isAdmin, profile, onClose }) {
     await supabase.from('profiles').update({ role: newRole }).eq('id', profileId)
     fetchQuizmasters()
     setQmSearchResults(prev => prev.map(u => u.id === profileId ? { ...u, role: newRole } : u))
+  }
+
+  // View responses panel
+  if (view === 'responses' && viewResponses) {
+    const { quiz: vQuiz, responses: vResponses } = viewResponses
+    const [expandedResp, setExpandedResp] = useState(null)
+
+    return (
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
+        <div className="glass glow-border rounded-2xl p-6 max-w-2xl w-[95%] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="text-white text-sm font-orbitron tracking-wider">Responses — {vQuiz.title}</h3>
+              <p className="text-gray-500 text-xs">{vResponses.length} participant{vResponses.length !== 1 ? 's' : ''}</p>
+            </div>
+            <button onClick={() => { setView('manage'); setViewResponses(null) }} className="text-gray-400 hover:text-white text-sm cursor-pointer">← Back</button>
+          </div>
+
+          {vResponses.length === 0 ? (
+            <p className="text-gray-500 text-sm text-center py-6">No responses yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {vResponses.map((resp) => (
+                <div key={resp.id} className="bg-gray-800/30 rounded-lg overflow-hidden">
+                  {/* Player header */}
+                  <button
+                    onClick={() => setExpandedResp(expandedResp === resp.id ? null : resp.id)}
+                    className="w-full flex items-center justify-between p-3 cursor-pointer hover:bg-gray-700/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{resp.profile?.avatar_emoji || '✦'}</span>
+                      <div className="text-left">
+                        <p className="text-white text-sm">{resp.profile?.display_name || resp.profile?.username || resp.profile?.email || 'Anonymous'}</p>
+                        <p className="text-gray-500 text-[10px]">{resp.profile?.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {resp.evaluated && (
+                        <span className="text-cyan-300 text-xs font-orbitron">{resp.total_score} pts</span>
+                      )}
+                      <span className="text-gray-500 text-xs">{resp.answers?.filter(a => a.answer?.trim()).length}/{vQuiz.questions.length} answered</span>
+                      <span className="text-gray-500 text-xs">{expandedResp === resp.id ? '▲' : '▼'}</span>
+                    </div>
+                  </button>
+
+                  {/* Expanded answers */}
+                  {expandedResp === resp.id && (
+                    <div className="px-3 pb-3 space-y-2 border-t border-gray-700/30 pt-2">
+                      {vQuiz.questions.map((q, i) => {
+                        const ans = resp.answers?.find(a => a.question_index === i)
+                        const score = resp.scores?.find(s => s.question_index === i)
+                        const verdictColor = score?.verdict === 'correct' ? 'text-emerald-400' :
+                          score?.verdict === 'partially_correct' ? 'text-amber-400' :
+                          score ? 'text-red-400' : 'text-gray-500'
+
+                        return (
+                          <div key={i} className="flex items-start gap-2 text-xs">
+                            <span className="text-gray-500 shrink-0 w-5 text-right">{i + 1}.</span>
+                            <div className="flex-1">
+                              <p className="text-gray-400">{q.question}</p>
+                              <p className="text-white mt-0.5">{ans?.answer || <span className="text-gray-600 italic">blank</span>}</p>
+                            </div>
+                            {score && (
+                              <span className={`shrink-0 ${verdictColor}`}>{score.score}/{q.points}</span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
   }
 
   // Quizmaster management view (admin only)
