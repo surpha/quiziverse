@@ -69,9 +69,48 @@ function getNextGroqKey() {
   return key
 }
 
+// Separate key pool for 8B fallback — VITE_GROQ_8B_KEY, VITE_GROQ_8B_KEY_2, etc.
+// Falls back to primary keys if no 8B-specific keys are set
+let groq8bKeyIndex = 0
+function getGroq8bKeys() {
+  const keys = []
+  const primary = import.meta.env.VITE_GROQ_8B_KEY
+  if (primary) keys.push(primary)
+  for (let i = 2; i <= 10; i++) {
+    const k = import.meta.env[`VITE_GROQ_8B_KEY_${i}`]
+    if (k) keys.push(k)
+  }
+  // If no 8B-specific keys, reuse the primary keys
+  return keys.length > 0 ? keys : getGroqKeys()
+}
+function getNext8bKey() {
+  const keys = getGroq8bKeys()
+  if (keys.length === 0) return null
+  const key = keys[groq8bKeyIndex % keys.length]
+  groq8bKeyIndex++
+  return key
+}
+
 /** Get number of available Groq keys for parallelization */
 export function getGroqKeyCount() {
   return getGroqKeys().length
+}
+
+/** Retry wrapper — retries on 429 with backoff */
+async function withRetry(fn, maxRetries = 2) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      const isRateLimit = err.message?.includes('429')
+      if (isRateLimit && attempt < maxRetries) {
+        // Wait longer on each retry: 3s, 6s
+        await new Promise(r => setTimeout(r, 3000 * (attempt + 1)))
+        continue
+      }
+      throw err
+    }
+  }
 }
 
 async function callGroq(userMessage) {
@@ -188,6 +227,18 @@ async function callGroqCustom(systemPrompt, userMessage) {
   const apiKey = getNextGroqKey()
   if (!apiKey) throw new Error('VITE_GROQ_API_KEY not configured')
   const model = import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
+  return callGroqCustomWithModel(systemPrompt, userMessage, apiKey, model)
+}
+
+const FALLBACK_MODEL = import.meta.env.VITE_GROQ_FALLBACK_MODEL || 'llama-3.1-8b-instant'
+
+async function callGroqFallback(systemPrompt, userMessage) {
+  const apiKey = getNext8bKey()
+  if (!apiKey) throw new Error('VITE_GROQ_API_KEY not configured')
+  return callGroqCustomWithModel(systemPrompt, userMessage, apiKey, FALLBACK_MODEL)
+}
+
+async function callGroqCustomWithModel(systemPrompt, userMessage, apiKey, model) {
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -242,9 +293,18 @@ export async function verifyAnswer(question, correctAnswer, submittedAnswer) {
   const provider = import.meta.env.VITE_LLM_PROVIDER || 'groq'
   const userMessage = `Question: ${question}\nCorrect Answer: ${correctAnswer}\nUser's Answer: ${submittedAnswer}`
 
-  const content = provider === 'gemini'
-    ? await callGeminiCustom(VERIFY_PROMPT, userMessage)
-    : await callGroqCustom(VERIFY_PROMPT, userMessage)
+  let content
+  try {
+    content = await withRetry(async () => {
+      return provider === 'gemini'
+        ? await callGeminiCustom(VERIFY_PROMPT, userMessage)
+        : await callGroqCustom(VERIFY_PROMPT, userMessage)
+    })
+  } catch (primaryErr) {
+    // Fallback: use llama-3.1-8b-instant (higher RPD limit, lighter model)
+    console.warn(`Primary model failed, falling back to ${FALLBACK_MODEL}:`, primaryErr.message)
+    content = await callGroqFallback(VERIFY_PROMPT, userMessage)
+  }
 
   if (!content) throw new Error('Empty LLM response')
 

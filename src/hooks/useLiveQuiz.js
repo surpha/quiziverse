@@ -11,6 +11,10 @@ export function useLiveQuiz(slug, userId) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const subscriptionRef = useRef(null)
+  const responseRef = useRef(null)
+
+  // Keep ref in sync with state
+  useEffect(() => { responseRef.current = response }, [response])
 
   // Fetch quiz by slug
   const fetchQuiz = useCallback(async () => {
@@ -117,18 +121,20 @@ export function useLiveQuiz(slug, userId) {
 
   // Save answers (debounced autosave from component)
   const saveAnswers = useCallback(async (answers) => {
-    if (!supabase || !response) return
+    if (!supabase) return
+    const currentResponse = responseRef.current
+    if (!currentResponse) return
     if (quiz?.status !== 'live') return // Can't save if not live
 
     const { data, error: err } = await supabase
       .from('live_quiz_responses')
       .update({ answers, submitted_at: new Date().toISOString() })
-      .eq('id', response.id)
+      .eq('id', currentResponse.id)
       .select()
       .single()
 
     if (!err) setResponse(data)
-  }, [response, quiz?.status])
+  }, [quiz?.status])
 
   return {
     quiz,

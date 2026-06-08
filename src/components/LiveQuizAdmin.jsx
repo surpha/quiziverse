@@ -19,6 +19,10 @@ export default function LiveQuizAdmin({ userId, isAdmin, profile, onClose }) {
   const [qmSearchResults, setQmSearchResults] = useState([])
   const [qmLoading, setQmLoading] = useState(false)
   const [viewResponses, setViewResponses] = useState(null) // { quiz, responses }
+  const [expandedResp, setExpandedResp] = useState(null)
+  const [questionAnalytics, setQuestionAnalytics] = useState(null) // { quiz, responses }
+  const [analyticsQIndex, setAnalyticsQIndex] = useState(0)
+  const [expandedAnswer, setExpandedAnswer] = useState(null)
 
   // Live participant count for the selected quiz
   useEffect(() => {
@@ -147,6 +151,11 @@ export default function LiveQuizAdmin({ userId, isAdmin, profile, onClose }) {
 
       setEvalProgress({ current: total, total: totalToProcess, phase: `Evaluating (${concurrency} key${concurrency > 1 ? 's' : ''})...` })
 
+      // Calculate optimal delay: if all LLM calls fit within 30 RPM per key, go fast
+      const totalLLMCalls = llmTasks.length
+      const rpmCapacity = 30 * concurrency // e.g. 60 with 2 keys
+      const batchDelay = totalLLMCalls <= rpmCapacity ? 400 : 2200 // fast mode vs safe mode
+
       // Process LLM tasks in parallel batches
       for (let b = 0; b < llmTasks.length; b += concurrency) {
         const batch = llmTasks.slice(b, b + concurrency)
@@ -173,9 +182,8 @@ export default function LiveQuizAdmin({ userId, isAdmin, profile, onClose }) {
           total++
         }
 
-        setEvalProgress({ current: total, total: totalToProcess, phase: `Evaluating (${concurrency} key${concurrency > 1 ? 's' : ''})...` })
-        // Small delay between batches to avoid rate limits
-        if (b + concurrency < llmTasks.length) await new Promise(r => setTimeout(r, 150))
+        setEvalProgress({ current: total, total: totalToProcess, phase: `Evaluating${totalLLMCalls <= rpmCapacity ? ' ⚡' : ''} (${concurrency} key${concurrency > 1 ? 's' : ''})...` })
+        if (b + concurrency < llmTasks.length) await new Promise(r => setTimeout(r, batchDelay))
       }
 
       await saveEvaluation(resp.id, scores.filter(Boolean), respTotal)
@@ -419,6 +427,27 @@ export default function LiveQuizAdmin({ userId, isAdmin, profile, onClose }) {
                 👁 View Responses ({participantCount})
               </button>
             )}
+            {quiz.status !== 'draft' && (
+              <button
+                onClick={async () => {
+                  const { data } = await getResponses(quiz.id)
+                  const userIds = (data || []).map(r => r.user_id)
+                  let profileMap = {}
+                  if (userIds.length > 0) {
+                    const { data: profiles } = await supabase.from('profiles').select('id, display_name, username, email, avatar_emoji').in('id', userIds)
+                    ;(profiles || []).forEach(p => { profileMap[p.id] = p })
+                  }
+                  const enriched = (data || []).map(r => ({ ...r, profile: profileMap[r.user_id] || null }))
+                  setQuestionAnalytics({ quiz, responses: enriched })
+                  setAnalyticsQIndex(0)
+                  setExpandedAnswer(null)
+                  setView('analytics')
+                }}
+                className="w-full px-4 py-2.5 bg-indigo-700/80 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg cursor-pointer"
+              >
+                📊 Question Analytics
+              </button>
+            )}
           </div>
 
           {/* Questions preview */}
@@ -482,10 +511,150 @@ export default function LiveQuizAdmin({ userId, isAdmin, profile, onClose }) {
     setQmSearchResults(prev => prev.map(u => u.id === profileId ? { ...u, role: newRole } : u))
   }
 
+  // Question analytics view
+  if (view === 'analytics' && questionAnalytics) {
+    const { quiz: aQuiz, responses: aResponses } = questionAnalytics
+    const currentQ = aQuiz.questions[analyticsQIndex]
+    const totalRespondents = aResponses.length
+
+    // Normalize answer for grouping: lowercase, trim, strip punctuation
+    const normalize = (str) => (str || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ')
+
+    // Group answers
+    const answerGroups = {}
+    aResponses.forEach((resp) => {
+      const ans = resp.answers?.find(a => a.question_index === analyticsQIndex)
+      const raw = ans?.answer || ''
+      const normalized = normalize(raw)
+      const key = normalized || '__blank__'
+
+      if (!answerGroups[key]) {
+        answerGroups[key] = { display: raw || '(blank)', normalized: key, players: [], count: 0 }
+      }
+      // Keep the longest display version
+      if (raw.length > answerGroups[key].display.length && raw.trim()) {
+        answerGroups[key].display = raw
+      }
+      answerGroups[key].players.push(resp.profile || { display_name: 'Anonymous' })
+      answerGroups[key].count++
+    })
+
+    // Sort by count descending
+    const sorted = Object.values(answerGroups).sort((a, b) => b.count - a.count)
+
+    // Check which group is the correct answer
+    const correctNorm = normalize(currentQ.answer)
+    const isCorrectGroup = (group) => {
+      const g = group.normalized
+      if (g === correctNorm) return true
+      if (correctNorm.includes(g) || g.includes(correctNorm)) return true
+      if (g.replace(/\s/g, '') === correctNorm.replace(/\s/g, '')) return true
+      return false
+    }
+
+    return (
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
+        <div className="glass glow-border rounded-2xl p-6 max-w-2xl w-[95%] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-white text-sm font-orbitron tracking-wider">Question Analytics</h3>
+              <p className="text-gray-500 text-xs">{aQuiz.title} • {totalRespondents} responses</p>
+            </div>
+            <button onClick={() => { setView('manage'); setQuestionAnalytics(null) }} className="text-gray-400 hover:text-white text-sm cursor-pointer">← Back</button>
+          </div>
+
+          {/* Question navigation */}
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              onClick={() => { setAnalyticsQIndex(Math.max(0, analyticsQIndex - 1)); setExpandedAnswer(null) }}
+              disabled={analyticsQIndex === 0}
+              className="px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white text-xs rounded cursor-pointer disabled:cursor-not-allowed"
+            >
+              ←
+            </button>
+            <span className="text-gray-400 text-xs flex-1 text-center">
+              Q{analyticsQIndex + 1} / {aQuiz.questions.length}
+            </span>
+            <button
+              onClick={() => { setAnalyticsQIndex(Math.min(aQuiz.questions.length - 1, analyticsQIndex + 1)); setExpandedAnswer(null) }}
+              disabled={analyticsQIndex === aQuiz.questions.length - 1}
+              className="px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white text-xs rounded cursor-pointer disabled:cursor-not-allowed"
+            >
+              →
+            </button>
+          </div>
+
+          {/* Current question */}
+          <div className="mb-4 p-3 bg-gray-800/50 rounded-lg">
+            <p className="text-white text-sm">{currentQ.question}</p>
+            <p className="text-emerald-400 text-xs mt-1">Correct: {currentQ.answer} ({currentQ.points} pts)</p>
+          </div>
+
+          {/* Answer distribution bar chart */}
+          <div className="space-y-2">
+            {sorted.map((group, idx) => {
+              const pct = totalRespondents > 0 ? Math.round((group.count / totalRespondents) * 100) : 0
+              const correct = isCorrectGroup(group)
+              const isBlank = group.normalized === '__blank__'
+              const isExpanded = expandedAnswer === idx
+
+              return (
+                <div key={idx}>
+                  <button
+                    onClick={() => setExpandedAnswer(isExpanded ? null : idx)}
+                    className="w-full text-left cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs flex-1 truncate ${correct ? 'text-emerald-300 font-medium' : isBlank ? 'text-gray-500 italic' : 'text-white'}`}>
+                        {correct && '✓ '}{group.display}
+                      </span>
+                      <span className="text-gray-400 text-[10px] shrink-0">{group.count} ({pct}%)</span>
+                    </div>
+                    <div className="w-full h-5 bg-gray-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${correct ? 'bg-emerald-500/70' : isBlank ? 'bg-gray-600/50' : 'bg-indigo-500/60'}`}
+                        style={{ width: `${Math.max(pct, 2)}%` }}
+                      />
+                    </div>
+                  </button>
+
+                  {/* Expanded: show who answered this */}
+                  {isExpanded && (
+                    <div className="mt-1 ml-2 pl-3 border-l border-gray-700 space-y-1 mb-2">
+                      {group.players.map((p, pi) => (
+                        <p key={pi} className="text-gray-400 text-[10px]">
+                          {p.avatar_emoji || '✦'} {p.display_name || p.username || p.email || 'Anonymous'}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Quick nav dots */}
+          <div className="flex flex-wrap gap-1 mt-4 pt-3 border-t border-gray-700/50">
+            {aQuiz.questions.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => { setAnalyticsQIndex(i); setExpandedAnswer(null) }}
+                className={`w-6 h-6 rounded text-[10px] cursor-pointer transition-colors ${
+                  i === analyticsQIndex ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-500 hover:bg-gray-700'
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // View responses panel
   if (view === 'responses' && viewResponses) {
     const { quiz: vQuiz, responses: vResponses } = viewResponses
-    const [expandedResp, setExpandedResp] = useState(null)
 
     return (
       <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
