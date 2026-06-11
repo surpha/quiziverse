@@ -6,11 +6,10 @@ import { useAuth } from '../hooks/useAuth'
 import AuthModal from './AuthModal'
 import LoadingScreen from './LoadingScreen'
 
-// Get today in IST
-function getTodayIST() {
+// Get today's date in user's local timezone as YYYY-MM-DD
+function getToday() {
   const now = new Date()
-  const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000))
-  return ist.toISOString().split('T')[0]
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
 /**
@@ -28,7 +27,7 @@ export default function DailyChallengePage({ onExit }) {
   })
 
   // When playing an archive date (not today), use the date-specific hook
-  const isArchiveMode = selectedDate && selectedDate !== getTodayIST()
+  const isArchiveMode = selectedDate && selectedDate !== getToday()
   const { challenge: archiveChallenge, loading: archiveLoading } = useDailyChallengeByDate(
     user?.id,
     isArchiveMode ? selectedDate : null

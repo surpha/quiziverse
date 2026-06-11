@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-// Get today's date in IST (UTC+5:30) as YYYY-MM-DD
-function getTodayIST() {
+// Get today's date in user's local timezone as YYYY-MM-DD
+function getToday() {
   const now = new Date()
-  const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000))
-  return ist.toISOString().split('T')[0]
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
 export function useDailyChallenge(userId) {
@@ -22,7 +21,7 @@ export function useDailyChallenge(userId) {
     }
 
     try {
-      const today = getTodayIST()
+      const today = getToday()
 
       // Get today's challenge
       const { data: challengeData, error: cErr } = await supabase
