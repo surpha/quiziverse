@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { useDailyChallengeDates } from '../hooks/useDailyChallengeByDate'
 
-// Get today in IST
-function getTodayIST() {
+// Get today's date in user's local timezone as YYYY-MM-DD
+function getToday() {
   const now = new Date()
-  const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000))
-  return ist.toISOString().split('T')[0]
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
 function getDaysInMonth(year, month) {
@@ -21,7 +20,7 @@ const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
 
 export default function DailyChallengeArchive({ userId, onSelectDate, onClose }) {
   const { dates, loading } = useDailyChallengeDates(userId)
-  const today = getTodayIST()
+  const today = getToday()
 
   // Calendar state
   const [viewYear, setViewYear] = useState(() => parseInt(today.split('-')[0]))

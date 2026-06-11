@@ -47,11 +47,10 @@ function AdminMediaPreview({ imageUrl, mediaUrl }) {
   )
 }
 
-// Get today's date in IST as YYYY-MM-DD
-function getTodayIST() {
+// Get today's date in user's local timezone as YYYY-MM-DD
+function getToday() {
   const now = new Date()
-  const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000))
-  return ist.toISOString().split('T')[0]
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
 function formatDate(dateStr) {
@@ -76,7 +75,7 @@ export default function DailyChallengeAdmin() {
   const [hinting, setHinting] = useState(null) // 'new-0' | 'id-0' format for tracking
   const [classifying, setClassifying] = useState(null)
 
-  const today = getTodayIST()
+  const today = getToday()
 
   const fetchChallenges = useCallback(async () => {
     setLoading(true)
