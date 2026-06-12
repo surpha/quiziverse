@@ -15,21 +15,32 @@ export default function BackgroundMusic() {
     return saved === 'true'
   })
   const [started, setStarted] = useState(false)
-  const [trackIndex, setTrackIndex] = useState(0)
+  const [trackIndex, setTrackIndex] = useState(() => Math.floor(Math.random() * PLAYLIST.length))
   const audioRef = useRef(null)
+
+  // Pick a random next track (different from current)
+  const pickRandomNext = (current) => {
+    if (PLAYLIST.length <= 1) return 0
+    let next
+    do {
+      next = Math.floor(Math.random() * PLAYLIST.length)
+    } while (next === current)
+    return next
+  }
 
   // Create audio element once
   useEffect(() => {
-    const audio = new Audio(PLAYLIST[0])
+    const startIndex = Math.floor(Math.random() * PLAYLIST.length)
+    const audio = new Audio(PLAYLIST[startIndex])
     audio.loop = PLAYLIST.length === 1
     audio.volume = 0.3
     audio.preload = 'auto'
     audioRef.current = audio
 
-    // When track ends, play next in playlist
+    // When track ends, pick a random different track
     audio.addEventListener('ended', () => {
       if (PLAYLIST.length > 1) {
-        setTrackIndex(prev => (prev + 1) % PLAYLIST.length)
+        setTrackIndex(prev => pickRandomNext(prev))
       }
     })
 
