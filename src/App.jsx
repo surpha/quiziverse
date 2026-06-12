@@ -21,6 +21,7 @@ import EventChallenge from './components/EventChallenge'
 import EventAdmin from './components/EventAdmin'
 import LiveQuizPlayer from './components/LiveQuizPlayer'
 import LiveQuizAdmin from './components/LiveQuizAdmin'
+import BackgroundMusic from './components/BackgroundMusic'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { useDailyChallenge } from './hooks/useDailyChallenge'
@@ -85,8 +86,9 @@ function App() {
   // Route: /live
   const [isLiveRoute, setIsLiveRoute] = useState(() => window.location.pathname === '/live')
 
+  let content
   if (isDailyRoute) {
-    return (
+    content = (
       <DailyChallengePage
         onExit={() => {
           setIsDailyRoute(false)
@@ -94,13 +96,18 @@ function App() {
         }}
       />
     )
+  } else if (isLiveRoute) {
+    content = <LiveQuizRoute onExit={() => { setIsLiveRoute(false); window.history.pushState({}, '', '/') }} />
+  } else {
+    content = <MainApp />
   }
 
-  if (isLiveRoute) {
-    return <LiveQuizRoute onExit={() => { setIsLiveRoute(false); window.history.pushState({}, '', '/') }} />
-  }
-
-  return <MainApp />
+  return (
+    <>
+      {content}
+      <BackgroundMusic />
+    </>
+  )
 }
 
 function LiveQuizRoute({ onExit }) {
