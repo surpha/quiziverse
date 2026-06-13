@@ -1389,22 +1389,26 @@ function DisputesTab() {
       if (dailyMatch) {
         const [, challengeId, qIndex] = dailyMatch
         const questionIndex = parseInt(qIndex)
-        // Fetch the daily_attempts row and update the verdict in the answers JSON
-        const { data: attempt } = await supabase
-          .from('daily_attempts')
-          .select('id, answers, total_score')
-          .eq('user_id', dispute.user_id)
-          .eq('challenge_id', challengeId)
-          .single()
+        // Fetch challenge (for question max_score & hint costs) and the attempt
+        const [{ data: challengeData }, { data: attempt }] = await Promise.all([
+          supabase.from('daily_challenges').select('questions').eq('id', challengeId).single(),
+          supabase.from('daily_attempts').select('id, answers, total_score').eq('user_id', dispute.user_id).eq('challenge_id', challengeId).single(),
+        ])
 
         if (attempt && attempt.answers) {
           const answers = [...attempt.answers]
           const answerIdx = answers.findIndex(a => a.question_index === questionIndex)
           if (answerIdx !== -1) {
             const oldScore = answers[answerIdx].score || 0
-            const maxScore = 10
-            answers[answerIdx] = { ...answers[answerIdx], verdict: 'correct', score: maxScore }
-            const scoreDiff = maxScore - oldScore
+            // Recalculate correct score accounting for hints used
+            const question = challengeData?.questions?.[questionIndex]
+            const questionMaxScore = question?.max_score || 10
+            const hintsUsed = answers[answerIdx].hints_used || []
+            const hintCostTotal = hintsUsed.reduce((sum, idx) => sum + (question?.hints?.[idx]?.cost || 1), 0)
+            const correctScore = Math.max(0, questionMaxScore - hintCostTotal)
+
+            answers[answerIdx] = { ...answers[answerIdx], verdict: 'correct', score: correctScore }
+            const scoreDiff = correctScore - oldScore
             await supabase.from('daily_attempts').update({
               answers,
               total_score: (attempt.total_score || 0) + scoreDiff,
