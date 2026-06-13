@@ -91,3 +91,19 @@ create policy "Users update own attempts"
   on daily_attempts for update
   to authenticated
   using (user_id = auth.uid());
+
+-- Admins can update any user's attempts (for dispute resolution)
+create policy "Admins update any attempts"
+  on daily_attempts for update
+  to authenticated
+  using (
+    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+  );
+
+-- Admins can read any attempts (for analytics/disputes)
+create policy "Admins read all attempts"
+  on daily_attempts for select
+  to authenticated
+  using (
+    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+  );
