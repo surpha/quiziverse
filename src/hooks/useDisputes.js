@@ -73,15 +73,40 @@ export function useDisputes(userId, isAdmin = false) {
 
     if (err) return { error: err.message }
 
-    // If approved, update the user's play_attempts to 'correct'
+    // If approved, update the user's attempt to 'correct'
     if (resolution === 'approved') {
       const dispute = disputes.find(d => d.id === disputeId)
       if (dispute) {
-        await supabase
-          .from('play_attempts')
-          .update({ verdict: 'correct' })
-          .eq('user_id', dispute.user_id)
-          .eq('question_id', dispute.question_id)
+        const dailyMatch = dispute.question_id.match(/^daily-(.+)-(\d+)$/)
+        if (dailyMatch) {
+          const [, challengeId, qIndex] = dailyMatch
+          const idx = parseInt(qIndex)
+          const { data: attempt } = await supabase
+            .from('daily_attempts')
+            .select('id, answers, total_score')
+            .eq('user_id', dispute.user_id)
+            .eq('challenge_id', challengeId)
+            .single()
+
+          if (attempt && attempt.answers) {
+            const answers = [...attempt.answers]
+            if (answers[idx]) {
+              const oldScore = answers[idx].score || 0
+              const maxScore = 10
+              answers[idx] = { ...answers[idx], verdict: 'correct', score: maxScore }
+              await supabase.from('daily_attempts').update({
+                answers,
+                total_score: (attempt.total_score || 0) + (maxScore - oldScore),
+              }).eq('id', attempt.id)
+            }
+          }
+        } else {
+          await supabase
+            .from('play_attempts')
+            .update({ verdict: 'correct' })
+            .eq('user_id', dispute.user_id)
+            .eq('question_id', dispute.question_id)
+        }
 
         // Send notification to user
         await supabase.from('notifications').insert({

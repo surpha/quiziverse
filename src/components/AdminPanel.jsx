@@ -204,10 +204,10 @@ function AdminPanel({ onClose }) {
         <h2 className="text-white text-lg font-orbitron tracking-wider mb-3">Admin Panel</h2>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-4 border-b border-gray-700/50 pb-2">
+        <div className="flex gap-1 mb-4 border-b border-gray-700/50 pb-2 overflow-x-auto">
           <button
             onClick={() => setTab('pending')}
-            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
               tab === 'pending' ? 'glass text-cyan-300 ring-1 ring-cyan-500/50' : 'text-gray-400 hover:text-white hover:bg-gray-800'
             }`}
           >
@@ -218,7 +218,7 @@ function AdminPanel({ onClose }) {
           </button>
           <button
             onClick={() => setTab('staging')}
-            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
               tab === 'staging' ? 'glass text-cyan-300 ring-1 ring-cyan-500/50' : 'text-gray-400 hover:text-white hover:bg-gray-800'
             }`}
           >
@@ -229,7 +229,7 @@ function AdminPanel({ onClose }) {
           </button>
           <button
             onClick={() => setTab('repository')}
-            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
               tab === 'repository' ? 'glass text-cyan-300 ring-1 ring-cyan-500/50' : 'text-gray-400 hover:text-white hover:bg-gray-800'
             }`}
           >
@@ -238,7 +238,7 @@ function AdminPanel({ onClose }) {
           </button>
           <button
             onClick={() => setTab('daily')}
-            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
               tab === 'daily' ? 'glass text-amber-300 ring-1 ring-amber-500/50' : 'text-gray-400 hover:text-white hover:bg-gray-800'
             }`}
           >
@@ -246,7 +246,7 @@ function AdminPanel({ onClose }) {
           </button>
           <button
             onClick={() => setTab('disputes')}
-            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
               tab === 'disputes' ? 'glass text-orange-300 ring-1 ring-orange-500/50' : 'text-gray-400 hover:text-white hover:bg-gray-800'
             }`}
           >
@@ -254,7 +254,7 @@ function AdminPanel({ onClose }) {
           </button>
           <button
             onClick={() => setTab('notifications')}
-            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
               tab === 'notifications' ? 'glass text-purple-300 ring-1 ring-purple-500/50' : 'text-gray-400 hover:text-white hover:bg-gray-800'
             }`}
           >
@@ -1382,11 +1382,40 @@ function DisputesTab() {
       reviewed_at: new Date().toISOString(),
     }).eq('id', disputeId)
 
-    // If approved, fix the user's play attempt
+    // If approved, fix the user's attempt
     if (resolution === 'approved' && dispute) {
-      await supabase.from('play_attempts').update({ verdict: 'correct' })
-        .eq('user_id', dispute.user_id)
-        .eq('question_id', dispute.question_id)
+      // Check if it's a daily challenge dispute (format: daily-{challengeId}-{questionIndex})
+      const dailyMatch = dispute.question_id.match(/^daily-(.+)-(\d+)$/)
+      if (dailyMatch) {
+        const [, challengeId, qIndex] = dailyMatch
+        const idx = parseInt(qIndex)
+        // Fetch the daily_attempts row and update the verdict in the answers JSON
+        const { data: attempt } = await supabase
+          .from('daily_attempts')
+          .select('id, answers, total_score')
+          .eq('user_id', dispute.user_id)
+          .eq('challenge_id', challengeId)
+          .single()
+
+        if (attempt && attempt.answers) {
+          const answers = [...attempt.answers]
+          if (answers[idx]) {
+            const oldScore = answers[idx].score || 0
+            const maxScore = 10 // default max
+            answers[idx] = { ...answers[idx], verdict: 'correct', score: maxScore }
+            const scoreDiff = maxScore - oldScore
+            await supabase.from('daily_attempts').update({
+              answers,
+              total_score: (attempt.total_score || 0) + scoreDiff,
+            }).eq('id', attempt.id)
+          }
+        }
+      } else {
+        // Regular play mode dispute
+        await supabase.from('play_attempts').update({ verdict: 'correct' })
+          .eq('user_id', dispute.user_id)
+          .eq('question_id', dispute.question_id)
+      }
     }
 
     // Send notification
