@@ -81,23 +81,26 @@ export function useDisputes(userId, isAdmin = false) {
         if (dailyMatch) {
           const [, challengeId, qIndex] = dailyMatch
           const questionIndex = parseInt(qIndex)
-          const { data: attempt } = await supabase
-            .from('daily_attempts')
-            .select('id, answers, total_score')
-            .eq('user_id', dispute.user_id)
-            .eq('challenge_id', challengeId)
-            .single()
+          const [{ data: challengeData }, { data: attempt }] = await Promise.all([
+            supabase.from('daily_challenges').select('questions').eq('id', challengeId).single(),
+            supabase.from('daily_attempts').select('id, answers, total_score').eq('user_id', dispute.user_id).eq('challenge_id', challengeId).single(),
+          ])
 
           if (attempt && attempt.answers) {
             const answers = [...attempt.answers]
             const answerIdx = answers.findIndex(a => a.question_index === questionIndex)
             if (answerIdx !== -1) {
               const oldScore = answers[answerIdx].score || 0
-              const maxScore = 10
-              answers[answerIdx] = { ...answers[answerIdx], verdict: 'correct', score: maxScore }
+              const question = challengeData?.questions?.[questionIndex]
+              const questionMaxScore = question?.max_score || 10
+              const hintsUsed = answers[answerIdx].hints_used || []
+              const hintCostTotal = hintsUsed.reduce((sum, idx) => sum + (question?.hints?.[idx]?.cost || 1), 0)
+              const correctScore = Math.max(0, questionMaxScore - hintCostTotal)
+
+              answers[answerIdx] = { ...answers[answerIdx], verdict: 'correct', score: correctScore }
               await supabase.from('daily_attempts').update({
                 answers,
-                total_score: (attempt.total_score || 0) + (maxScore - oldScore),
+                total_score: (attempt.total_score || 0) + (correctScore - oldScore),
               }).eq('id', attempt.id)
             }
           }
