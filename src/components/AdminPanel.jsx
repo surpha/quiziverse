@@ -1388,7 +1388,7 @@ function DisputesTab() {
       const dailyMatch = dispute.question_id.match(/^daily-(.+)-(\d+)$/)
       if (dailyMatch) {
         const [, challengeId, qIndex] = dailyMatch
-        const idx = parseInt(qIndex)
+        const questionIndex = parseInt(qIndex)
         // Fetch the daily_attempts row and update the verdict in the answers JSON
         const { data: attempt } = await supabase
           .from('daily_attempts')
@@ -1399,10 +1399,11 @@ function DisputesTab() {
 
         if (attempt && attempt.answers) {
           const answers = [...attempt.answers]
-          if (answers[idx]) {
-            const oldScore = answers[idx].score || 0
-            const maxScore = 10 // default max
-            answers[idx] = { ...answers[idx], verdict: 'correct', score: maxScore }
+          const answerIdx = answers.findIndex(a => a.question_index === questionIndex)
+          if (answerIdx !== -1) {
+            const oldScore = answers[answerIdx].score || 0
+            const maxScore = 10
+            answers[answerIdx] = { ...answers[answerIdx], verdict: 'correct', score: maxScore }
             const scoreDiff = maxScore - oldScore
             await supabase.from('daily_attempts').update({
               answers,
