@@ -97,13 +97,14 @@ function CosmicBlast() {
   )
 }
 
-function QuestionCard({ question, onClose, onNext, isPlayMode, attemptVerdict = null, onRecordAttempt }) {
+function QuestionCard({ question, onClose, onNext, isPlayMode, attemptVerdict = null, onRecordAttempt, onRaiseDispute }) {
   const [revealed, setRevealed] = useState(false)
   const [userAnswer, setUserAnswer] = useState('')
   const [verdict, setVerdict] = useState(null) // { verdict, explanation }
   const [judging, setJudging] = useState(false)
   const [hintsRevealed, setHintsRevealed] = useState(0)
   const [showBlast, setShowBlast] = useState(false)
+  const [disputeRaised, setDisputeRaised] = useState(false)
   const canSubmitAnswer = !judging && !!userAnswer.trim()
 
   const handleNext = () => {
@@ -275,6 +276,28 @@ function QuestionCard({ question, onClose, onNext, isPlayMode, attemptVerdict = 
             {/* Explanation */}
             {verdict?.explanation && (
               <p className="text-gray-400 text-sm px-1">{verdict.explanation}</p>
+            )}
+
+            {/* Dispute button — shown when verdict is wrong or partial */}
+            {verdict && (verdict.verdict === 'incorrect' || verdict.verdict === 'partially_correct') && onRaiseDispute && !disputeRaised && (
+              <button
+                onClick={() => {
+                  onRaiseDispute({
+                    questionId: question.id,
+                    questionText: question.question,
+                    correctAnswer: question.answer,
+                    userAnswer: userAnswer,
+                    llmVerdict: verdict.verdict,
+                  })
+                  setDisputeRaised(true)
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-amber-400 hover:text-amber-300 border border-amber-500/30 hover:border-amber-400/50 rounded-lg transition-colors cursor-pointer"
+              >
+                ⚠ Dispute — I think I'm correct
+              </button>
+            )}
+            {disputeRaised && (
+              <p className="text-amber-400/70 text-xs px-1">✓ Dispute raised — an admin will review it</p>
             )}
 
             {/* Correct answer */}

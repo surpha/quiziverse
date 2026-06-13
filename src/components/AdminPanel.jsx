@@ -4,9 +4,10 @@ import DOMAINS, { DOMAIN_KEYS } from '../utils/domainConfig'
 import QUESTION_TYPES from '../utils/questionTypes'
 import { classifyQuestion, factCheckAnswer, generateHints, isLLMConfigured } from '../utils/llmJudge'
 import DailyChallengeAdmin from './DailyChallengeAdmin'
+import { useDisputes } from '../hooks/useDisputes'
 
 function AdminPanel({ onClose }) {
-  const [tab, setTab] = useState('pending') // 'pending' | 'staging' | 'repository' | 'daily'
+  const [tab, setTab] = useState('pending') // 'pending' | 'staging' | 'repository' | 'daily' | 'disputes' | 'notifications'
   const [pending, setPending] = useState([])
   const [staging, setStaging] = useState([])
   const [approved, setApproved] = useState([])
@@ -243,6 +244,22 @@ function AdminPanel({ onClose }) {
           >
             📅 Daily
           </button>
+          <button
+            onClick={() => setTab('disputes')}
+            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
+              tab === 'disputes' ? 'glass text-orange-300 ring-1 ring-orange-500/50' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+            }`}
+          >
+            ⚠ Disputes
+          </button>
+          <button
+            onClick={() => setTab('notifications')}
+            className={`px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
+              tab === 'notifications' ? 'glass text-purple-300 ring-1 ring-purple-500/50' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+            }`}
+          >
+            🔔 Notify
+          </button>
         </div>
 
         {/* Content */}
@@ -293,6 +310,10 @@ function AdminPanel({ onClose }) {
               actionLoading={actionLoading}
               getDomainTags={getDomainTags}
             />
+          ) : tab === 'disputes' ? (
+            <DisputesTab />
+          ) : tab === 'notifications' ? (
+            <NotifyTab />
           ) : (
             <DailyChallengeAdmin />
           )}
@@ -1326,6 +1347,339 @@ function RepositoryTab({ questions, search, onSearchChange, onDelete, onEdit, on
             )
           })}
         </div>
+      )}
+    </div>
+  )
+}
+
+function DisputesTab() {
+  const [disputes, setDisputes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('pending') // 'pending' | 'all'
+  const [resolving, setResolving] = useState(null)
+  const [adminNote, setAdminNote] = useState('')
+
+  const fetchDisputes = useCallback(async () => {
+    setLoading(true)
+    let query = supabase.from('disputes').select('*').order('created_at', { ascending: false })
+    if (filter === 'pending') query = query.eq('status', 'pending')
+    const { data } = await query
+    setDisputes(data || [])
+    setLoading(false)
+  }, [filter])
+
+  useEffect(() => { fetchDisputes() }, [fetchDisputes])
+
+  const handleResolve = async (disputeId, resolution) => {
+    setResolving(disputeId)
+    const dispute = disputes.find(d => d.id === disputeId)
+
+    // Update dispute status
+    await supabase.from('disputes').update({
+      status: resolution,
+      admin_note: adminNote || null,
+      reviewed_by: (await supabase.auth.getUser()).data.user?.id,
+      reviewed_at: new Date().toISOString(),
+    }).eq('id', disputeId)
+
+    // If approved, fix the user's play attempt
+    if (resolution === 'approved' && dispute) {
+      await supabase.from('play_attempts').update({ verdict: 'correct' })
+        .eq('user_id', dispute.user_id)
+        .eq('question_id', dispute.question_id)
+    }
+
+    // Send notification
+    if (dispute) {
+      await supabase.from('notifications').insert({
+        user_id: dispute.user_id,
+        type: resolution === 'approved' ? 'dispute_approved' : 'dispute_rejected',
+        title: resolution === 'approved' ? 'Dispute Approved ✓' : 'Dispute Reviewed',
+        message: resolution === 'approved'
+          ? `Your answer "${dispute.user_answer}" for "${dispute.question_text.slice(0, 50)}..." has been marked correct!`
+          : `Your dispute for "${dispute.question_text.slice(0, 50)}..." was reviewed. ${adminNote || 'The original verdict stands.'}`,
+        metadata: { dispute_id: disputeId, question_id: dispute.question_id },
+      })
+    }
+
+    setAdminNote('')
+    setResolving(null)
+    fetchDisputes()
+  }
+
+  if (loading) return <p className="text-cyan-400 text-sm animate-pulse py-8 text-center">Loading disputes...</p>
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2 mb-3">
+        <button
+          onClick={() => setFilter('pending')}
+          className={`px-3 py-1 text-xs rounded-lg cursor-pointer ${filter === 'pending' ? 'glass text-orange-300 ring-1 ring-orange-500/50' : 'text-gray-400 hover:text-white'}`}
+        >
+          Pending
+        </button>
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-3 py-1 text-xs rounded-lg cursor-pointer ${filter === 'all' ? 'glass text-cyan-300 ring-1 ring-cyan-500/50' : 'text-gray-400 hover:text-white'}`}
+        >
+          All
+        </button>
+      </div>
+
+      {disputes.length === 0 ? (
+        <p className="text-gray-500 text-sm text-center py-8">No {filter === 'pending' ? 'pending ' : ''}disputes</p>
+      ) : (
+        disputes.map(d => (
+          <div key={d.id} className="bg-gray-800/80 border border-gray-700 rounded-xl p-4 space-y-3">
+            {/* Question */}
+            <div>
+              <p className="text-cyan-400/60 text-xs font-orbitron tracking-wider mb-1">Question</p>
+              <p className="text-white text-sm">{d.question_text}</p>
+            </div>
+
+            {/* Answers comparison */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-emerald-400/60 text-xs mb-1">Correct Answer</p>
+                <p className="text-emerald-300 text-sm">{d.correct_answer}</p>
+              </div>
+              <div>
+                <p className="text-amber-400/60 text-xs mb-1">User's Answer</p>
+                <p className="text-amber-300 text-sm">{d.user_answer}</p>
+              </div>
+            </div>
+
+            {/* LLM verdict & user reason */}
+            <div className="flex items-center gap-3 text-xs">
+              <span className="text-red-400">LLM said: {d.llm_verdict}</span>
+              {d.user_reason && <span className="text-gray-400">Reason: "{d.user_reason}"</span>}
+            </div>
+
+            {/* Status badge */}
+            {d.status !== 'pending' && (
+              <span className={`inline-block px-2 py-0.5 text-xs rounded ${
+                d.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+              }`}>
+                {d.status === 'approved' ? '✓ Approved' : '✗ Rejected'}
+                {d.admin_note && ` — ${d.admin_note}`}
+              </span>
+            )}
+
+            {/* Admin actions (only for pending) */}
+            {d.status === 'pending' && (
+              <div className="border-t border-gray-700 pt-3 space-y-2">
+                <input
+                  type="text"
+                  placeholder="Admin note (optional)"
+                  value={resolving === d.id ? adminNote : ''}
+                  onFocus={() => setResolving(d.id)}
+                  onChange={(e) => setAdminNote(e.target.value)}
+                  className="w-full glass rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleResolve(d.id, 'approved')}
+                    disabled={resolving === d.id && resolving !== d.id}
+                    className="px-4 py-1.5 bg-emerald-600/80 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+                  >
+                    ✓ Approve (mark correct)
+                  </button>
+                  <button
+                    onClick={() => handleResolve(d.id, 'rejected')}
+                    className="px-4 py-1.5 bg-red-600/80 hover:bg-red-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+                  >
+                    ✗ Reject
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Meta */}
+            <p className="text-gray-600 text-[10px]">
+              {new Date(d.created_at).toLocaleString()} · User: {d.user_id.slice(0, 8)}...
+            </p>
+          </div>
+        ))
+      )}
+    </div>
+  )
+}
+
+function NotifyTab() {
+  const [target, setTarget] = useState('all') // 'all' | 'user'
+  const [userId, setUserId] = useState('')
+  const [title, setTitle] = useState('')
+  const [message, setMessage] = useState('')
+  const [type, setType] = useState('info')
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState(null)
+  const [users, setUsers] = useState([])
+  const [searchUser, setSearchUser] = useState('')
+
+  // Fetch users for autocomplete
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, email, display_name, username')
+        .order('display_name')
+      setUsers(data || [])
+    }
+    fetchUsers()
+  }, [])
+
+  const filteredUsers = searchUser
+    ? users.filter(u =>
+        (u.display_name || '').toLowerCase().includes(searchUser.toLowerCase()) ||
+        (u.username || '').toLowerCase().includes(searchUser.toLowerCase()) ||
+        (u.email || '').toLowerCase().includes(searchUser.toLowerCase())
+      )
+    : []
+
+  const handleSend = async () => {
+    if (!title.trim() || !message.trim()) {
+      setResult({ type: 'error', text: 'Title and message are required' })
+      return
+    }
+    if (target === 'user' && !userId) {
+      setResult({ type: 'error', text: 'Select a user' })
+      return
+    }
+
+    setSending(true)
+    setResult(null)
+
+    try {
+      if (target === 'all') {
+        // Send to all users
+        const notifications = users.map(u => ({
+          user_id: u.id,
+          type,
+          title: title.trim(),
+          message: message.trim(),
+          metadata: { broadcast: true },
+        }))
+
+        const { error } = await supabase.from('notifications').insert(notifications)
+        if (error) throw error
+        setResult({ type: 'success', text: `Sent to ${users.length} users` })
+      } else {
+        // Send to specific user
+        const { error } = await supabase.from('notifications').insert({
+          user_id: userId,
+          type,
+          title: title.trim(),
+          message: message.trim(),
+          metadata: {},
+        })
+        if (error) throw error
+        const user = users.find(u => u.id === userId)
+        setResult({ type: 'success', text: `Sent to ${user?.display_name || user?.username || 'user'}` })
+      }
+
+      setTitle('')
+      setMessage('')
+    } catch (err) {
+      setResult({ type: 'error', text: err.message })
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-white font-orbitron text-sm tracking-wider">Send Notification</h3>
+
+      {/* Target selection */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setTarget('all')}
+          className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer ${target === 'all' ? 'glass text-purple-300 ring-1 ring-purple-500/50' : 'text-gray-400 hover:text-white'}`}
+        >
+          All Users ({users.length})
+        </button>
+        <button
+          onClick={() => setTarget('user')}
+          className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer ${target === 'user' ? 'glass text-cyan-300 ring-1 ring-cyan-500/50' : 'text-gray-400 hover:text-white'}`}
+        >
+          Specific User
+        </button>
+      </div>
+
+      {/* User picker */}
+      {target === 'user' && (
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search user by name, username, or email..."
+            value={searchUser}
+            onChange={(e) => { setSearchUser(e.target.value); setUserId('') }}
+            className="w-full glass rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+          />
+          {filteredUsers.length > 0 && !userId && (
+            <div className="absolute top-full mt-1 w-full glass rounded-lg overflow-hidden z-10 max-h-40 overflow-y-auto">
+              {filteredUsers.slice(0, 8).map(u => (
+                <button
+                  key={u.id}
+                  onClick={() => { setUserId(u.id); setSearchUser(u.display_name || u.username || u.email) }}
+                  className="w-full px-3 py-2 text-left text-xs text-white hover:bg-cyan-900/30 cursor-pointer"
+                >
+                  <span className="font-medium">{u.display_name || u.username || 'Unnamed'}</span>
+                  {u.email && <span className="text-gray-500 ml-2">{u.email}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+          {userId && <p className="text-emerald-400 text-xs mt-1">✓ Selected</p>}
+        </div>
+      )}
+
+      {/* Notification type */}
+      <div>
+        <label className="text-gray-400 text-xs mb-1 block">Type</label>
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="glass rounded-lg px-3 py-2 text-sm text-white w-full focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+        >
+          <option value="info">🔔 Info</option>
+          <option value="daily">📅 Daily</option>
+          <option value="achievement">🏆 Achievement</option>
+        </select>
+      </div>
+
+      {/* Title */}
+      <input
+        type="text"
+        placeholder="Notification title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="w-full glass rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+      />
+
+      {/* Message */}
+      <textarea
+        placeholder="Notification message..."
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        rows={3}
+        className="w-full glass rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 resize-none"
+      />
+
+      {/* Send button */}
+      <button
+        onClick={handleSend}
+        disabled={sending}
+        className="w-full px-4 py-2.5 bg-purple-600/80 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
+      >
+        {sending ? 'Sending...' : `Send to ${target === 'all' ? 'All Users' : 'User'}`}
+      </button>
+
+      {/* Result message */}
+      {result && (
+        <p className={`text-xs ${result.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
+          {result.text}
+        </p>
       )}
     </div>
   )

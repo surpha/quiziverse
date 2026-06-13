@@ -22,10 +22,13 @@ import EventAdmin from './components/EventAdmin'
 import LiveQuizPlayer from './components/LiveQuizPlayer'
 import LiveQuizAdmin from './components/LiveQuizAdmin'
 import BackgroundMusic from './components/BackgroundMusic'
+import NotificationsPanel from './components/NotificationsPanel'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { useDailyChallenge } from './hooks/useDailyChallenge'
 import { usePlayAttempts } from './hooks/usePlayAttempts'
+import { useDisputes } from './hooks/useDisputes'
+import { useNotifications } from './hooks/useNotifications'
 import { computePositions } from './utils/coordinateMapper'
 import DOMAINS, { DOMAIN_KEYS } from './utils/domainConfig'
 import QUESTION_TYPES from './utils/questionTypes'
@@ -170,6 +173,8 @@ function MainApp() {
   const { questions, loading, source, refetch } = useQuestions()
   const { user, profile, isAdmin, isQuizmaster, loading: authLoading, recoveryMode, setRecoveryMode, signIn, signUp, signOut, signInWithGoogle } = useAuth()
   const { attempts, recordAttempt } = usePlayAttempts(user?.id)
+  const { raiseDispute } = useDisputes(user?.id)
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user?.id)
   const [selectedQuestion, setSelectedQuestion] = useState(null)
   const [isPlayMode, setIsPlayMode] = useState(false)
   const [showContribute, setShowContribute] = useState(false)
@@ -189,6 +194,7 @@ function MainApp() {
   const [showDaily, setShowDaily] = useState(false)
   const [showArchive, setShowArchive] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
   const [localProfile, setLocalProfile] = useState(null)
   const [selectedDomains, setSelectedDomains] = useState([])
   const [selectedTypes, setSelectedTypes] = useState([])
@@ -562,17 +568,33 @@ function MainApp() {
             </button>
           )}
         </div>
-        <button
-          className="w-9 h-9 rounded-full overflow-hidden cursor-pointer ring-2 ring-transparent hover:ring-cyan-500/50 transition-all flex items-center justify-center bg-gray-800/80"
-          onClick={() => setShowProfile(true)}
-          title="Profile"
-        >
-          {user?.user_metadata?.avatar_url ? (
-            <img src={user.user_metadata.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" />
-          ) : (
-            <span className="text-lg">{(localProfile || profile)?.avatar_emoji || '✦'}</span>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Notification bell */}
+          <button
+            className="relative w-9 h-9 rounded-full cursor-pointer ring-2 ring-transparent hover:ring-cyan-500/50 transition-all flex items-center justify-center bg-gray-800/80"
+            onClick={() => setShowNotifications(!showNotifications)}
+            title="Notifications"
+          >
+            <span className="text-base">🔔</span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+          {/* Profile button */}
+          <button
+            className="w-9 h-9 rounded-full overflow-hidden cursor-pointer ring-2 ring-transparent hover:ring-cyan-500/50 transition-all flex items-center justify-center bg-gray-800/80"
+            onClick={() => setShowProfile(true)}
+            title="Profile"
+          >
+            {user?.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" />
+            ) : (
+              <span className="text-lg">{(localProfile || profile)?.avatar_emoji || '✦'}</span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Bottom center actions */}
@@ -676,6 +698,7 @@ function MainApp() {
           isPlayMode={isPlayMode}
           attemptVerdict={attempts[selectedQuestion.id] || null}
           onRecordAttempt={recordAttempt}
+          onRaiseDispute={user ? raiseDispute : null}
         />
       )}
 
@@ -748,6 +771,16 @@ function MainApp() {
           onClose={() => setShowProfile(false)}
           onProfileUpdate={(updated) => setLocalProfile(updated)}
           onSignOut={signOut}
+        />
+      )}
+
+      {showNotifications && (
+        <NotificationsPanel
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkAsRead={markAsRead}
+          onMarkAllAsRead={markAllAsRead}
+          onClose={() => setShowNotifications(false)}
         />
       )}
 

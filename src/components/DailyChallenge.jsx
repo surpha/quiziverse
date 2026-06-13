@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { verifyAnswer, isLLMConfigured } from '../utils/llmJudge'
 import { useDailyChallenge } from '../hooks/useDailyChallenge'
 import { useDailyChallengeByDate } from '../hooks/useDailyChallengeByDate'
+import { useDisputes } from '../hooks/useDisputes'
 
 function getYouTubeId(url) {
   if (!url) return null
@@ -76,6 +77,8 @@ export default function DailyChallenge({ userId, onClose, date }) {
   const [showCompleted, setShowCompleted] = useState(false)
   const [reviewMode, setReviewMode] = useState(false)
   const [reviewIndex, setReviewIndex] = useState(0)
+  const [disputeRaised, setDisputeRaised] = useState({})
+  const { raiseDispute } = useDisputes(userId)
 
   // Sync current question index from attempt ONLY on initial load
   useEffect(() => {
@@ -605,6 +608,27 @@ export default function DailyChallenge({ userId, onClose, date }) {
               </p>
               {verdict?.explanation && (
                 <p className="text-gray-300 text-xs mt-1">{verdict.explanation}</p>
+              )}
+              {/* Dispute button */}
+              {verdict && (verdict.verdict === 'incorrect' || verdict.verdict === 'partial') && !disputeRaised[currentQ] && (
+                <button
+                  onClick={() => {
+                    raiseDispute({
+                      questionId: `daily-${challenge?.id}-${currentQ}`,
+                      questionText: question.question,
+                      correctAnswer: question.answer,
+                      userAnswer: userAnswer || existingAnswer?.answer || '',
+                      llmVerdict: verdict.verdict,
+                    })
+                    setDisputeRaised(prev => ({ ...prev, [currentQ]: true }))
+                  }}
+                  className="mt-2 flex items-center gap-1.5 px-3 py-1.5 text-xs text-amber-400 hover:text-amber-300 border border-amber-500/30 hover:border-amber-400/50 rounded-lg transition-colors cursor-pointer"
+                >
+                  ⚠ Dispute — I think I'm correct
+                </button>
+              )}
+              {disputeRaised[currentQ] && (
+                <p className="text-amber-400/70 text-xs mt-2">✓ Dispute raised — an admin will review it</p>
               )}
               <p className="text-gray-500 text-xs mt-2">
                 Answer: {question.answer}
