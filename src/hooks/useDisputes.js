@@ -80,7 +80,7 @@ export function useDisputes(userId, isAdmin = false) {
         const dailyMatch = dispute.question_id.match(/^daily-(.+)-(\d+)$/)
         if (dailyMatch) {
           const [, challengeId, qIndex] = dailyMatch
-          const idx = parseInt(qIndex)
+          const questionIndex = parseInt(qIndex)
           const { data: attempt } = await supabase
             .from('daily_attempts')
             .select('id, answers, total_score')
@@ -90,10 +90,11 @@ export function useDisputes(userId, isAdmin = false) {
 
           if (attempt && attempt.answers) {
             const answers = [...attempt.answers]
-            if (answers[idx]) {
-              const oldScore = answers[idx].score || 0
+            const answerIdx = answers.findIndex(a => a.question_index === questionIndex)
+            if (answerIdx !== -1) {
+              const oldScore = answers[answerIdx].score || 0
               const maxScore = 10
-              answers[idx] = { ...answers[idx], verdict: 'correct', score: maxScore }
+              answers[answerIdx] = { ...answers[answerIdx], verdict: 'correct', score: maxScore }
               await supabase.from('daily_attempts').update({
                 answers,
                 total_score: (attempt.total_score || 0) + (maxScore - oldScore),
