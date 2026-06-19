@@ -3,6 +3,7 @@ import { verifyAnswer, isLLMConfigured } from '../utils/llmJudge'
 import { useDailyChallenge } from '../hooks/useDailyChallenge'
 import { useDailyChallengeByDate } from '../hooks/useDailyChallengeByDate'
 import { useDisputes } from '../hooks/useDisputes'
+import { getStreakFact, getStreakEmoji, getStreakLabel } from '../utils/streakFacts'
 
 function getYouTubeId(url) {
   if (!url) return null
@@ -62,7 +63,7 @@ function ScoreBar({ score, maxPossible }) {
   )
 }
 
-export default function DailyChallenge({ userId, onClose, date }) {
+export default function DailyChallenge({ userId, onClose, date, streak, onStreakChange }) {
   // Use date-specific hook for archive mode, regular hook for today
   const todayHook = useDailyChallenge(date ? null : userId)
   const archiveHook = useDailyChallengeByDate(userId, date || null)
@@ -122,6 +123,15 @@ export default function DailyChallenge({ userId, onClose, date }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [verdict, currentQ, questionsCount, attempt])
 
+  // Refetch streak when challenge is completed (small delay for DB propagation)
+  const isCompleted = showCompleted || (attempt?.completed && !verdict)
+  useEffect(() => {
+    if (isCompleted && onStreakChange) {
+      const t = setTimeout(() => onStreakChange(), 500)
+      return () => clearTimeout(t)
+    }
+  }, [isCompleted, onStreakChange])
+
   if (loading) {
     return (
       <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80">
@@ -148,7 +158,6 @@ export default function DailyChallenge({ userId, onClose, date }) {
   const questions = challenge.questions
   const maxPossible = questions.reduce((sum, q) => sum + (q.max_score || 10), 0)
   const question = questions[currentQ]
-  const isCompleted = showCompleted || (attempt?.completed && !verdict)
 
   // Calculate score lost by hints for current question
   const hintCostTotal = revealedHints.reduce((sum, idx) => sum + (question?.hints?.[idx]?.cost || 1), 0)
@@ -249,6 +258,7 @@ export default function DailyChallenge({ userId, onClose, date }) {
       ...rows,
       '',
       `Total: ${total}/${max} ${stars}`,
+      ...(streak > 0 ? [`${getStreakEmoji(streak)} ${streak}-day streak`] : []),
       '',
       'Play daily → https://quiziverse-tau.vercel.app/daily-challenge'
     ].join('\n')
@@ -282,6 +292,8 @@ export default function DailyChallenge({ userId, onClose, date }) {
   if (isCompleted && !reviewMode) {
     const totalScore = attempt?.total_score || 0
     const answersData = attempt?.answers || []
+    const streakFact = streak > 0 ? getStreakFact(streak) : null
+
     return (
       <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
         <div className="glass glow-border rounded-2xl p-8 max-w-md w-[90%] text-center" onClick={e => e.stopPropagation()}>
@@ -291,6 +303,31 @@ export default function DailyChallenge({ userId, onClose, date }) {
           <div className="mb-6">
             <ScoreBar score={totalScore} maxPossible={maxPossible} />
           </div>
+
+          {/* Streak display */}
+          <div className="mb-5 p-3 rounded-xl bg-gradient-to-r from-amber-900/20 to-orange-900/20 border border-amber-700/30">
+            {streak > 0 ? (
+              <>
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <span className="text-lg">{getStreakEmoji(streak)}</span>
+                  <span className="text-amber-300 font-orbitron text-lg">{streak}</span>
+                  <span className="text-amber-200/80 text-xs font-orbitron">{streak === 1 ? 'day' : 'day streak'}</span>
+                  {getStreakLabel(streak) && (
+                    <span className="text-amber-500/60 text-[10px] uppercase tracking-wider">• {getStreakLabel(streak)}</span>
+                  )}
+                </div>
+                {streakFact && (
+                  <p className="text-gray-400 text-[11px] italic leading-relaxed">{streakFact}</p>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-lg">⚡</span>
+                <span className="text-gray-400 text-xs">Come back tomorrow to start a streak!</span>
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2 mb-6">
             {answersData.map((a, i) => (
               <div key={i} className="flex items-center justify-between text-xs">

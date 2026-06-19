@@ -26,6 +26,7 @@ import NotificationsPanel from './components/NotificationsPanel'
 import { useQuestions } from './hooks/useQuestions'
 import { useAuth } from './hooks/useAuth'
 import { useDailyChallenge } from './hooks/useDailyChallenge'
+import { useStreak } from './hooks/useStreak'
 import { usePlayAttempts } from './hooks/usePlayAttempts'
 import { useDisputes } from './hooks/useDisputes'
 import { useNotifications } from './hooks/useNotifications'
@@ -218,6 +219,7 @@ function MainApp() {
 
   // Auto-open daily challenge ONLY on login if user hasn't completed it
   const { challenge: todayChallenge, attempt: todayAttempt, loading: dailyLoading } = useDailyChallenge(user?.id)
+  const { streak, refetchStreak } = useStreak(user?.id)
   useEffect(() => {
     // Check if user just logged in (user went from null/undefined to a valid user)
     const userJustLoggedIn = !previousUserRef.current && user
@@ -743,7 +745,7 @@ function MainApp() {
       )}
 
       {showDaily && (
-        <DailyChallenge userId={user.id} onClose={() => {
+        <DailyChallenge userId={user.id} streak={streak} onStreakChange={refetchStreak} onClose={() => {
           setShowDaily(false)
           if (todayChallenge) {
             sessionStorage.setItem(`daily-dismissed-${todayChallenge.challenge_date}`, '1')

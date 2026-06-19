@@ -3,6 +3,8 @@ import DailyChallenge from './DailyChallenge'
 import DailyChallengeArchive from './DailyChallengeArchive'
 import { useDailyChallengeByDate } from '../hooks/useDailyChallengeByDate'
 import { useAuth } from '../hooks/useAuth'
+import { useStreak } from '../hooks/useStreak'
+import { getStreakFact, getStreakEmoji, getStreakLabel } from '../utils/streakFacts'
 import AuthModal from './AuthModal'
 import LoadingScreen from './LoadingScreen'
 
@@ -19,6 +21,7 @@ function getToday() {
  */
 export default function DailyChallengePage({ onExit }) {
   const { user, profile, loading: authLoading, signIn, signUp, signInWithGoogle } = useAuth()
+  const { streak, refetchStreak } = useStreak(user?.id)
   const [showAuth, setShowAuth] = useState(false)
   const [showArchive, setShowArchive] = useState(false)
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -99,6 +102,13 @@ export default function DailyChallengePage({ onExit }) {
           ← Back to Quiziverse
         </button>
         <div className="flex items-center gap-2">
+          {streak > 0 && (
+            <div className="px-3 py-1.5 glass rounded-lg text-xs flex items-center gap-1.5" title={getStreakFact(streak)}>
+              <span>{getStreakEmoji(streak)}</span>
+              <span className="text-amber-300 font-orbitron">{streak}</span>
+              <span className="text-gray-400 hidden sm:inline">{getStreakLabel(streak)}</span>
+            </div>
+          )}
           <button
             onClick={() => setShowArchive(true)}
             className="px-3 py-1.5 glass rounded-lg text-gray-300 hover:text-cyan-300 text-xs cursor-pointer transition-colors flex items-center gap-1"
@@ -137,6 +147,8 @@ export default function DailyChallengePage({ onExit }) {
             key={selectedDate}
             userId={user.id}
             date={selectedDate}
+            streak={streak}
+            onStreakChange={refetchStreak}
             onClose={handleBackToToday}
           />
         )
@@ -144,6 +156,8 @@ export default function DailyChallengePage({ onExit }) {
         <DailyChallenge
           key="today"
           userId={user.id}
+          streak={streak}
+          onStreakChange={refetchStreak}
           onClose={onExit}
         />
       )}
