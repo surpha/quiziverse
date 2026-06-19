@@ -296,7 +296,7 @@ export default function DailyChallenge({ userId, onClose, date, streak, maxStrea
 
     return (
       <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
-        <div className="glass glow-border rounded-2xl p-8 max-w-md w-[90%] text-center" onClick={e => e.stopPropagation()}>
+        <div className="glass glow-border rounded-2xl p-8 max-w-md w-[90%] max-h-[90vh] overflow-y-auto text-center" onClick={e => e.stopPropagation()}>
           <div className="text-4xl mb-4">🏆</div>
           <h2 className="text-white text-xl font-orbitron tracking-wider mb-2">Challenge Complete!</h2>
           <p className="text-gray-400 text-xs mb-4">Daily Quiziverse Challenge • {challenge.challenge_date}</p>
