@@ -219,7 +219,7 @@ function MainApp() {
 
   // Auto-open daily challenge ONLY on login if user hasn't completed it
   const { challenge: todayChallenge, attempt: todayAttempt, loading: dailyLoading } = useDailyChallenge(user?.id)
-  const { streak, refetchStreak } = useStreak(user?.id)
+  const { streak, maxStreak, totalPlayed, refetchStreak } = useStreak(user?.id)
   useEffect(() => {
     // Check if user just logged in (user went from null/undefined to a valid user)
     const userJustLoggedIn = !previousUserRef.current && user
@@ -745,7 +745,7 @@ function MainApp() {
       )}
 
       {showDaily && (
-        <DailyChallenge userId={user.id} streak={streak} onStreakChange={refetchStreak} onClose={() => {
+        <DailyChallenge userId={user.id} streak={streak} maxStreak={maxStreak} totalPlayed={totalPlayed} onStreakChange={refetchStreak} onClose={() => {
           setShowDaily(false)
           if (todayChallenge) {
             sessionStorage.setItem(`daily-dismissed-${todayChallenge.challenge_date}`, '1')

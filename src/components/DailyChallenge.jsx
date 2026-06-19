@@ -63,7 +63,7 @@ function ScoreBar({ score, maxPossible }) {
   )
 }
 
-export default function DailyChallenge({ userId, onClose, date, streak, onStreakChange }) {
+export default function DailyChallenge({ userId, onClose, date, streak, maxStreak, totalPlayed, onStreakChange }) {
   // Use date-specific hook for archive mode, regular hook for today
   const todayHook = useDailyChallenge(date ? null : userId)
   const archiveHook = useDailyChallengeByDate(userId, date || null)
@@ -328,18 +328,43 @@ export default function DailyChallenge({ userId, onClose, date, streak, onStreak
             )}
           </div>
 
+          {/* Statistics row */}
+          <div className="grid grid-cols-3 gap-3 mb-5">
+            <div className="text-center">
+              <p className="text-white font-orbitron text-lg">{totalPlayed || 0}</p>
+              <p className="text-gray-500 text-[10px] uppercase tracking-wider">Played</p>
+            </div>
+            <div className="text-center">
+              <p className="text-amber-300 font-orbitron text-lg">{streak || 0}</p>
+              <p className="text-gray-500 text-[10px] uppercase tracking-wider">Current Streak</p>
+            </div>
+            <div className="text-center">
+              <p className="text-cyan-300 font-orbitron text-lg">{maxStreak || 0}</p>
+              <p className="text-gray-500 text-[10px] uppercase tracking-wider">Max Streak</p>
+            </div>
+          </div>
+
           <div className="space-y-2 mb-6">
-            {answersData.map((a, i) => (
-              <div key={i} className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">Q{i + 1}</span>
-                <span className={`font-medium ${
-                  a.verdict === 'correct' ? 'text-emerald-400' :
-                  a.verdict === 'partial' ? 'text-amber-400' : 'text-red-400'
-                }`}>
-                  {a.verdict === 'correct' ? '✓' : a.verdict === 'partial' ? '~' : '✗'} {a.score} pts
-                </span>
-              </div>
-            ))}
+            {answersData.map((a, i) => {
+              const qMax = questions[a.question_index]?.max_score || 10
+              const pct = qMax > 0 ? Math.round((a.score / qMax) * 100) : 0
+              const barColor = a.verdict === 'correct' ? 'bg-emerald-500' :
+                a.verdict === 'partial' ? 'bg-amber-500' : 'bg-red-500'
+              const textColor = a.verdict === 'correct' ? 'text-emerald-400' :
+                a.verdict === 'partial' ? 'text-amber-400' : 'text-red-400'
+              return (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="text-gray-500 w-6 text-right shrink-0">Q{i + 1}</span>
+                  <div className="flex-1 h-5 bg-gray-800 rounded-full overflow-hidden relative">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                      style={{ width: `${Math.max(pct, 3)}%` }}
+                    />
+                  </div>
+                  <span className={`${textColor} w-12 text-right shrink-0 font-medium`}>{a.score}/{qMax}</span>
+                </div>
+              )
+            })}
           </div>
 
           {/* Shareable preview */}

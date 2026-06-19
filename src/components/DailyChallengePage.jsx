@@ -21,7 +21,7 @@ function getToday() {
  */
 export default function DailyChallengePage({ onExit }) {
   const { user, profile, loading: authLoading, signIn, signUp, signInWithGoogle } = useAuth()
-  const { streak, refetchStreak } = useStreak(user?.id)
+  const { streak, maxStreak, totalPlayed, refetchStreak } = useStreak(user?.id)
   const [showAuth, setShowAuth] = useState(false)
   const [showArchive, setShowArchive] = useState(false)
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -148,6 +148,8 @@ export default function DailyChallengePage({ onExit }) {
             userId={user.id}
             date={selectedDate}
             streak={streak}
+            maxStreak={maxStreak}
+            totalPlayed={totalPlayed}
             onStreakChange={refetchStreak}
             onClose={handleBackToToday}
           />
@@ -157,6 +159,8 @@ export default function DailyChallengePage({ onExit }) {
           key="today"
           userId={user.id}
           streak={streak}
+          maxStreak={maxStreak}
+          totalPlayed={totalPlayed}
           onStreakChange={refetchStreak}
           onClose={onExit}
         />
