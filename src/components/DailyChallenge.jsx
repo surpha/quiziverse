@@ -343,11 +343,6 @@ export default function DailyChallenge({ userId, onClose, date, streak, maxStrea
             })}
           </div>
 
-          {/* Shareable preview */}
-          <div className="bg-gray-900/80 rounded-lg p-3 mb-4 text-left">
-            <pre className="text-gray-300 text-xs whitespace-pre-wrap font-mono leading-relaxed">{generateShareText()}</pre>
-          </div>
-
           <div className="flex gap-3 justify-center flex-wrap">
             <button
               onClick={() => { setReviewMode(true); setReviewIndex(0) }}
