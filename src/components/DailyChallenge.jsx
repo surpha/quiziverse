@@ -304,30 +304,6 @@ export default function DailyChallenge({ userId, onClose, date, streak, maxStrea
             <ScoreBar score={totalScore} maxPossible={maxPossible} />
           </div>
 
-          {/* Streak display */}
-          <div className="mb-5 p-3 rounded-xl bg-gradient-to-r from-amber-900/20 to-orange-900/20 border border-amber-700/30">
-            {streak > 0 ? (
-              <>
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <span className="text-lg">{getStreakEmoji(streak)}</span>
-                  <span className="text-amber-300 font-orbitron text-lg">{streak}</span>
-                  <span className="text-amber-200/80 text-xs font-orbitron">{streak === 1 ? 'day' : 'day streak'}</span>
-                  {getStreakLabel(streak) && (
-                    <span className="text-amber-500/60 text-[10px] uppercase tracking-wider">• {getStreakLabel(streak)}</span>
-                  )}
-                </div>
-                {streakFact && (
-                  <p className="text-gray-400 text-[11px] italic leading-relaxed">{streakFact}</p>
-                )}
-              </>
-            ) : (
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-lg">⚡</span>
-                <span className="text-gray-400 text-xs">Come back tomorrow to start a streak!</span>
-              </div>
-            )}
-          </div>
-
           {/* Statistics row */}
           <div className="grid grid-cols-3 gap-3 mb-5">
             <div className="text-center">
